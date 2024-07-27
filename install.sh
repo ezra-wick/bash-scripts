@@ -24,6 +24,7 @@ echo "🔧 Установка фреймворка..."
 # Создание скрипта автозапуска
 {
     echo "#!/bin/bash" > ~/.wsl_startup.sh
+    echo "source ~/.bashrc" >> ~/.wsl_startup.sh
     echo "echo '🛠️  WSL Bash Framework готов к работе!'" >> ~/.wsl_startup.sh
     chmod +x ~/.wsl_startup.sh
     echo "Создан скрипт автозапуска ~/.wsl_startup.sh" >> $LOG_FILE
