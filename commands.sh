@@ -12,10 +12,10 @@ RED='\033[0;31m'
 GRAY='\033[1;30m'
 NC='\033[0m' # No Color
 
-# Функция для проверки наличия команды в .bashrc
-command_exists_in_bashrc() {
+# Функция для проверки наличия команды в .wsl_startup.sh
+command_exists_in_startup() {
     local command="$1"
-    grep -q -F "$command" ~/.bashrc
+    grep -q -F "$command" ~/.wsl_startup.sh
 }
 
 # 🚀 Функция для добавления команды с автоматическим сохранением и регистрацией
@@ -25,9 +25,8 @@ add_command() {
     commands["$key"]="$command"
     echo -e "${GREEN}✅ Команда '$key' успешно добавлена!${NC}" | tee -a $LOG_FILE
     save_commands
-    register_command_in_bashrc "$key"
-    source ~/.bashrc
-    echo "Команда '$key' добавлена и .bashrc обновлен." | tee -a $LOG_FILE
+    register_command_in_startup "$key"
+    echo "Команда '$key' добавлена и обновлен ~/.wsl_startup.sh." | tee -a $LOG_FILE
 }
 
 # ✏️ Функция для редактирования команды с перерегистрацией
@@ -38,9 +37,8 @@ edit_command() {
         commands["$key"]="$command"
         echo -е "${GREEN}✏️ Команда '$key' успешно отредактирована!${NC}" | tee -a $LOG_FILE
         save_commands
-        register_command_in_bashrc "$key"
-        source ~/.bashrc
-        echo "Команда '$key' отредактирована и .bashrc обновлен." | tee -a $LOG_FILE
+        register_command_in_startup "$key"
+        echo "Команда '$key' отредактирована и обновлен ~/.wsl_startup.sh." | tee -a $LOG_FILE
     else
         echo -е "${RED}❌ Команда с ключом '$key' не существует.${NC}" | tee -a $LOG_FILE
     fi
@@ -52,10 +50,9 @@ delete_command() {
     unset commands["$key"]
     echo -е "${GREEN}🗑️ Команда '$key' удалена.${NC}" | tee -a $LOG_FILE
     save_commands
-    # Удаление алиаса из .bashrc
-    sed -i "/alias $key=/d" ~/.bashrc
-    source ~/.bashrc
-    echo "Команда '$key' удалена и .bashrc обновлен." | tee -a $LOG_FILE
+    # Удаление алиаса из .wsl_startup.sh
+    sed -i "/alias $key=/d" ~/.wsl_startup.sh
+    echo "Команда '$key' удалена и обновлен ~/.wsl_startup.sh." | tee -a $LOG_FILE
 }
 
 # ▶️ Функция для выполнения команды
@@ -108,12 +105,12 @@ load_commands
 # Сохранение команд при выходе
 trap save_commands EXIT
 
-# Функция для добавления алиаса, если его нет в .bashrc
-register_command_in_bashrc() {
+# Функция для добавления алиаса в скрипт автозапуска
+register_command_in_startup() {
     local key="$1"
-    if ! command_exists_in_bashrc "alias $key";then
-        echo "alias $key='execute_command $key'" >> ~/.bashrc
-        echo -е "${GREEN}🔗 Команда '$key' зарегистрирована в .bashrc.${NC}" | tee -a $LOG_FILE
+    if ! command_exists_in_startup "alias $key";then
+        echo "alias $key='execute_command $key'" >> ~/.wsl_startup.sh
+        echo -е "${GREEN}🔗 Команда '$key' зарегистрирована в ~/.wsl_startup.sh.${NC}" | tee -a $LOG_FILE
     else
         echo -е "${CYAN}⏩ Команда '$key' уже зарегистрирована.${NC}" | tee -a $LOG_FILE
     fi

@@ -21,19 +21,26 @@ echo "🔧 Установка фреймворка..."
     git push -u origin main
 } >> $LOG_FILE 2>&1
 
-# Установка команды для автоматического вызова .bashrc при запуске
+# Создание скрипта автозапуска
 {
-    if ! grep -q "source ~/.bashrc" ~/.bash_profile 2>/dev/null; then
-        echo "source ~/.bashrc" >> ~/.bash_profile
-        echo "source ~/.bashrc добавлен в ~/.bash_profile" >> $LOG_FILE
-    fi
+    echo "#!/bin/bash" > ~/.wsl_startup.sh
+    echo "source ~/.bashrc" >> ~/.wsl_startup.sh
+    echo "echo '🛠️  WSL Bash Framework готов к работе!'" >> ~/.wsl_startup.sh
+    chmod +x ~/.wsl_startup.sh
+    echo "Создан скрипт автозапуска ~/.wsl_startup.sh" >> $LOG_FILE
+} >> $LOG_FILE 2>&1
 
-    if ! grep -q "source ~/.bashrc" ~/.profile 2>/dev/null; then
-        echo "source ~/.bashrc" >> ~/.profile
-        echo "source ~/.bashrc добавлен в ~/.profile" >> $LOG_FILE
+# Настройка WSL для автозапуска скрипта
+{
+    if [ ! -f /etc/wsl.conf ]; then
+        sudo touch /etc/wsl.conf
     fi
+    sudo bash -c 'echo "[automount]" > /etc/wsl.conf'
+    sudo bash -c 'echo "root = /" >> /etc/wsl.conf'
+    sudo bash -c 'echo "options = "metadata"' >> /etc/wsl.conf'
+    sudo bash -c 'echo "[boot]" >> /etc/wsl.conf'
+    sudo bash -c 'echo "command = /bin/bash ~/.wsl_startup.sh"' >> /etc/wsl.conf'
+    echo "Настроен автозапуск WSL для выполнения ~/.wsl_startup.sh" >> $LOG_FILE
 } >> $LOG_FILE 2>&1
 
 echo "🎉 Установка завершена! 🎉 Пожалуйста, следуйте инструкциям в файле README.md."
-echo "Чтобы начать использование фреймворка, выполните команду:"
-echo "🖥️  source commands.sh"
