@@ -17,16 +17,18 @@ command_exists_in_bashrc() {
     grep -q -F "$command" ~/.bashrc
 }
 
-# 🚀 Функция для добавления команды с автоматическим сохранением
+# 🚀 Функция для добавления команды с автоматическим сохранением и регистрацией
 add_command() {
     local key="$1"
     local command="$2"
     commands["$key"]="$command"
     echo -e "${GREEN}✅ Команда '$key' успешно добавлена!${NC}"
     save_commands
+    register_command_in_bashrc "$key"
+    source ~/.bashrc
 }
 
-# ✏️ Функция для редактирования команды
+# ✏️ Функция для редактирования команды с перерегистрацией
 edit_command() {
     local key="$1"
     local command="$2"
@@ -34,6 +36,8 @@ edit_command() {
         commands["$key"]="$command"
         echo -e "${GREEN}✏️ Команда '$key' успешно отредактирована!${NC}"
         save_commands
+        register_command_in_bashrc "$key"
+        source ~/.bashrc
     else
         echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}"
     fi
@@ -45,6 +49,9 @@ delete_command() {
     unset commands["$key"]
     echo -e "${GREEN}🗑️ Команда '$key' удалена.${NC}"
     save_commands
+    # Удаление алиаса из .bashrc
+    sed -i "/alias $key=/d" ~/.bashrc
+    source ~/.bashrc
 }
 
 # ▶️ Функция для выполнения команды
@@ -95,64 +102,31 @@ load_commands
 trap save_commands EXIT
 
 # Функция для добавления алиаса, если его нет в .bashrc
-add_alias_if_not_exists() {
-    local alias_name="$1"
-    local alias_command="$2"
-    if ! command_exists_in_bashrc "alias $alias_name"; then
-        echo "alias $alias_name='$alias_command'" >> ~/.bashrc
-        echo -e "${GREEN}🔗 Алиас '$alias_name' добавлен.${NC}"
+register_command_in_bashrc() {
+    local key="$1"
+    if ! command_exists_in_bashrc "alias $key"; then
+        echo "alias $key='execute_command $key'" >> ~/.bashrc
+        echo -e "${GREEN}🔗 Команда '$key' зарегистрирована в .bashrc.${NC}"
     else
-        echo -e "${CYAN}⏩ Алиас '$alias_name' уже существует.${NC}"
+        echo -e "${CYAN}⏩ Команда '$key' уже зарегистрирована.${NC}"
     fi
 }
 
-# Добавление алиасов
-add_alias_if_not_exists "prp" "poetry run python"
-add_alias_if_not_exists "run" "DEBUG=True poetry run python manage.py runserver"
-add_alias_if_not_exists "mm" "poetry run python manage.py makemigrations && poetry run python manage.py migrate"
-add_alias_if_not_exists "migrate" "poetry run python manage.py migrate"
-add_alias_if_not_exists "work" "cd /mnt/c/work/gallery360"
-add_alias_if_not_exists "shop" "cd /mnt/c/code/shop/"
-add_alias_if_not_exists "phasotech" "cd /mnt/c/code/phasotech/"
-add_alias_if_not_exists "crearama" "cd /mnt/c/code/crearama/"
-add_alias_if_not_exists "push" "./test_server.sh"
-add_alias_if_not_exists "archive" "poetry run python archivator.py"
-add_alias_if_not_exists "openwork" "explorer.exe C:\\work\\gallery360"
-add_alias_if_not_exists "csu" "poetry run python manage.py createsuperuser"
-
-# Установка PATH
-if ! command_exists_in_bashrc 'export PATH="/usr/local/bin:$PATH"'; then
-    echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-fi
-
-# Функции для управления путями
-addpath() {
-    key=$1
-    current_path=$(pwd)
-    jq --arg key "$key" --arg path "$current_path" '.[$key] = $path' ~/paths.json > tmp.$$.json && mv tmp.$$.json ~/paths.json
-    echo -e "${GREEN}➕ Путь для ключа '$key' успешно добавлен!${NC}"
-}
-
-goto() {
-    key=$1
-    path=$(jq -r --arg key "$key" '.[$key]' ~/paths.json)
-    if [[ $path != "null" ]]; then
-        cd $path
-        echo -e "${CYAN}🔄 Перемещен в: $path${NC}"
-    else
-        echo -e "${RED}❌ Ключ '$key' не найден.${NC}"
-    fi
-}
-
-listpaths() {
-    echo -e "${CYAN}📋 Список сохраненных путей:${NC}"
-    jq -r 'to_entries[] | "\(.key) \(.value)"' ~/paths.json | column -t
-}
-
-removepath() {
-    key=$1
-    jq --arg key "$key" 'del(.[$key])' ~/paths.json > tmp.$$.json && mv tmp.$$.json ~/paths.json
-    echo -e "${GREEN}🗑️ Путь для ключа '$key' удален.${NC}"
+# Функция для комбинирования команд
+combine_commands() {
+    local new_key="$1"
+    shift
+    local combined_command=""
+    for key in "$@"; do
+        if [ "${commands["$key"]+isset}" ]; then
+            combined_command+="${commands["$key"]} && "
+        else
+            echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}"
+            return 1
+        fi
+    done
+    combined_command="${combined_command::-4}" # Удаление последнего ' && '
+    add_command "$new_key" "$combined_command"
 }
 
 # 🆘 Функция для отображения помощи с примерами использования
