@@ -2,7 +2,7 @@
 
 declare -A commands
 COMMANDS_DB=~/.commands_db.sh
-LOG_FILE=commands.log
+LOG_FILE=~/commands.log
 
 # Цветовые коды
 GREEN='\033[0;32m'
@@ -23,11 +23,11 @@ add_command() {
     local key="$1"
     local command="$2"
     commands["$key"]="$command"
-    echo -e "${GREEN}✅ Команда '$key' успешно добавлена!${NC}"
+    echo -e "${GREEN}✅ Команда '$key' успешно добавлена!${NC}" | tee -a $LOG_FILE
     save_commands
     register_command_in_bashrc "$key"
     source ~/.bashrc
-    echo "Команда '$key' добавлена с командой: '$command'" | tee -a $LOG_FILE
+    echo "Команда '$key' добавлена и .bashrc обновлен." | tee -a $LOG_FILE
 }
 
 # ✏️ Функция для редактирования команды с перерегистрацией
@@ -36,14 +36,13 @@ edit_command() {
     local command="$2"
     if [ "${commands["$key"]+isset}" ]; then
         commands["$key"]="$command"
-        echo -e "${GREEN}✏️ Команда '$key' успешно отредактирована!${NC}"
+        echo -e "${GREEN}✏️ Команда '$key' успешно отредактирована!${NC}" | tee -a $LOG_FILE
         save_commands
         register_command_in_bashrc "$key"
         source ~/.bashrc
-        echo "Команда '$key' отредактирована на: '$command'" | tee -a $LOG_FILE
+        echo "Команда '$key' отредактирована и .bashrc обновлен." | tee -a $LOG_FILE
     else
-        echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}"
-        echo "Ошибка: Команда с ключом '$key' не существует." | tee -a $LOG_FILE
+        echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}" | tee -a $LOG_FILE
     fi
 }
 
@@ -51,29 +50,28 @@ edit_command() {
 delete_command() {
     local key="$1"
     unset commands["$key"]
-    echo -e "${GREEN}🗑️ Команда '$key' удалена.${NC}"
+    echo -e "${GREEN}🗑️ Команда '$key' удалена.${NC}" | tee -a $LOG_FILE
     save_commands
     # Удаление алиаса из .bashrc
     sed -i "/alias $key=/d" ~/.bashrc
     source ~/.bashrc
-    echo "Команда '$key' удалена." | tee -a $LOG_FILE
+    echo "Команда '$key' удалена и .bashrc обновлен." | tee -a $LOG_FILE
 }
 
 # ▶️ Функция для выполнения команды
 execute_command() {
     local key="$1"
-    if [ "${commands["$key"]+isset}" ]; then
+    if [ "${commands["$key"]+isset}" ];then
+        echo "Выполнение команды '$key': ${commands[$key]}" | tee -a $LOG_FILE
         eval "${commands["$key"]}"
-        echo "Команда '$key' выполнена." | tee -a $LOG_FILE
     else
-        echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}"
-        echo "Ошибка: Команда с ключом '$key' не существует." | tee -a $LOG_FILE
+        echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}" | tee -a $LOG_FILE
     fi
 }
 
 # 🔍 Функция для отображения всех команд с адаптивным выравниванием
 list_commands() {
-    echo -e "${CYAN}📋 Зарегистрированные команды:${NC}"
+    echo -e "${CYAN}📋 Зарегистрированные команды:${NC}" | tee -a $LOG_FILE
     local max_key_length=0
     local max_value_length=0
     for key in "${!commands[@]}"; do
@@ -86,25 +84,22 @@ list_commands() {
     done
 
     for key in "${!commands[@]}"; do
-        printf "${YELLOW}🔑 %-*s${NC} %s\n" $max_key_length "$key" "${commands[$key]}"
+        printf "${YELLOW}🔑 %-*s${NC} %s\n" $max_key_length "$key" "${commands[$key]}" | tee -a $LOG_FILE
     done
-    echo "Команды выведены." | tee -a $LOG_FILE
 }
 
 # Функция для загрузки команд из файла
 load_commands() {
-    if [ -f "$COMMANDS_DB" ];то
+    if [ -f "$COMMANDS_DB" ];then
         source $COMMANDS_DB
-        echo "Команды загружены из $COMMANDS_DB." | tee -a $LOG_FILE
-    else
-        echo "Файл $COMMANDS_DB не найден." | tee -a $LOG_FILE
+        echo "Команды загружены из $COMMANDS_DB" | tee -a $LOG_FILE
     fi
 }
 
 # Функция для сохранения команд в файл
 save_commands() {
     declare -p commands > $COMMANDS_DB
-    echo "Команды сохранены в $COMMANDS_DB." | tee -a $LOG_FILE
+    echo "Команды сохранены в $COMMANDS_DB" | tee -a $LOG_FILE
 }
 
 # Загрузка команд при запуске
@@ -118,11 +113,9 @@ register_command_in_bashrc() {
     local key="$1"
     if ! command_exists_in_bashrc "alias $key"; then
         echo "alias $key='execute_command $key'" >> ~/.bashrc
-        echo -e "${GREEN}🔗 Команда '$key' зарегистрирована в .bashrc.${NC}"
-        echo "Алиас для '$key' добавлен в .bashrc." | tee -a $LOG_FILE
+        echo -e "${GREEN}🔗 Команда '$key' зарегистрирована в .bashrc.${NC}" | tee -a $LOG_FILE
     else
-        echo -е "${CYAN}⏩ Команда '$key' уже зарегистрирована.${NC}"
-        echo "Алиас для '$key' уже существует в .bashrc." | tee -а $LOG_FILE
+        echo -e "${CYAN}⏩ Команда '$key' уже зарегистрирована.${NC}" | tee -a $LOG_FILE
     fi
 }
 
@@ -132,49 +125,47 @@ combine_commands() {
     shift
     local combined_command=""
     for key in "$@"; do
-        if [ "${commands["$key"]+isset}" ];то
+        if [ "${commands["$key"]+isset}" ];then
             combined_command+="${commands["$key"]} && "
         else
-            echo -е "${RED}❌ Команда с ключом '$key' не существует.${NC}"
-            echo "Ошибка: Команда с ключом '$key' не существует." | tee -а $LOG_FILE
+            echo -e "${RED}❌ Команда с ключом '$key' не существует.${NC}" | tee -a $LOG_FILE
             return 1
         fi
     done
     combined_command="${combined_command::-4}" # Удаление последнего ' && '
     add_command "$new_key" "$combined_command"
-    echo "Команда '$new_key' создана как комбинация команд: $combined_command" | tee -а $LOG_FILE
+    echo "Комбинированная команда '$new_key' добавлена." | tee -a $LOG_FILE
 }
 
 # 🆘 Функция для отображения помощи с примерами использования
 help() {
-    echo -е "\n${CYAN}ℹ️  Доступные команды и функции:${NC}\n"
+    echo -e "\n${CYAN}ℹ️  Доступные команды и функции:${NC}\n" | tee -a $LOG_FILE
     sleep 0.5
-    echo -е "${YELLOW}➕ add_command <ключ> <команда>${NC}      - Добавить команду"
-    echo -е "${GRAY}   Пример: add_command start 'python3 app.py'${NC}"
+    echo -e "${YELLOW}➕ add_command <ключ> <команда>${NC}      - Добавить команду" | tee -a $LOG_FILE
+    echo -e "${GRAY}   Пример: add_command start 'python3 app.py'${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}✏️ edit_command <ключ> <команда>${NC}     - Редактировать команду"
-    echo -е "${GRAY}   Пример: edit_command start 'python3 server.py'${NC}"
+    echo -e "\n${YELLOW}✏️ edit_command <ключ> <команда>${NC}     - Редактировать команду" | tee -a $LOG_FILE
+    echo -е "${GRAY}   Пример: edit_command start 'python3 server.py'${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}🗑️ delete_command <ключ>${NC}              - Удалить команду"
-    echo -е "${GRAY}   Пример: delete_command start${NC}"
+    echo -е "\n${YELLOW}🗑️ delete_command <ключ>${NC}              - Удалить команду" | tee -a $LOG_FILE
+    echo -е "${GRAY}   Пример: delete_command start${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}▶️ execute_command <ключ>${NC}             - Выполнить команду"
-    echo -е "${GRAY}   Пример: execute_command start${NC}"
+    echo -е "\n${YELLOW}▶️ execute_command <ключ>${NC}             - Выполнить команду" | tee -a $LOG_FILE
+    echo -е "${GRAY}   Пример: execute_command start${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}🔍 list_commands${NC}                       - Показать все команды"
+    echo -е "\n${YELLOW}🔍 list_commands${NC}                       - Показать все команды" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}➕ addpath <ключ>${NC}                      - Добавить текущий путь по ключу"
-    echo -е "${GRAY}   Пример: addpath project${NC}"
+    echo -е "\n${YELLOW}➕ addpath <ключ>${NC}                      - Добавить текущий путь по ключу" | tee -a $LOG_FILE
+    echo -е "${GRAY}   Пример: addpath project${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}▶️ goto <ключ>${NC}                         - Перейти к сохранённому пути"
-    echo -е "${GRAY}   Пример: goto project${NC}"
+    echo -е "\n${YELLOW}▶️ goto <ключ>${NC}                         - Перейти к сохранённому пути" | tee -a $LOG_FILE
+    echo -е "${GRAY}   Пример: goto project${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}📋 listpaths${NC}                           - Показать все сохранённые пути"
+    echo -е "\n${YELLOW}📋 listpaths${NC}                           - Показать все сохранённые пути" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}🗑️ removepath <ключ>${NC}                   - Удалить сохранённый путь"
-    echo -е "${GRAY}   Пример: removepath project${NC}"
+    echo -е "\n${YELLOW}🗑️ removepath <ключ>${NC}                   - Удалить сохранённый путь" | tee -a $LOG_FILE
+    echo -е "${GRAY}   Пример: removepath project${NC}" | tee -a $LOG_FILE
     sleep 0.3
-    echo -е "\n${YELLOW}🆘 help${NC}                                - Показать это сообщение\n"
+    echo -е "\n${YELLOW}🆘 help${NC}                                - Показать это сообщение\n" | tee -a $LOG_FILE
     sleep 0.3
-    echo "Сообщение помощи отображено." | tee -а $LOG_FILE
 }
