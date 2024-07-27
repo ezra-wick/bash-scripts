@@ -24,23 +24,28 @@ echo "🔧 Установка фреймворка..."
 # Создание скрипта автозапуска
 {
     echo "#!/bin/bash" > ~/.wsl_startup.sh
-    echo "source ~/.bashrc" >> ~/.wsl_startup.sh
     echo "echo '🛠️  WSL Bash Framework готов к работе!'" >> ~/.wsl_startup.sh
     chmod +x ~/.wsl_startup.sh
     echo "Создан скрипт автозапуска ~/.wsl_startup.sh" >> $LOG_FILE
 } >> $LOG_FILE 2>&1
 
-# Настройка WSL для автозапуска скрипта
+# Настройка автозапуска через .profile или .bash_profile
 {
-    if [ ! -f /etc/wsl.conf ]; then
-        sudo touch /etc/wsl.conf
+    if [ -f ~/.profile ]; then
+        if ! grep -q "source ~/.wsl_startup.sh" ~/.profile; then
+            echo "source ~/.wsl_startup.sh" >> ~/.profile
+            echo "source ~/.wsl_startup.sh добавлен в ~/.profile" >> $LOG_FILE
+        fi
+    elif [ -f ~/.bash_profile ]; then
+        if ! grep -q "source ~/.wsl_startup.sh" ~/.bash_profile; then
+            echo "source ~/.wsl_startup.sh" >> ~/.bash_profile
+            echo "source ~/.wsl_startup.sh добавлен в ~/.bash_profile" >> $LOG_FILE
+        fi
+    else
+        # Если оба файла отсутствуют, создаем ~/.profile
+        echo "source ~/.wsl_startup.sh" > ~/.profile
+        echo "Создан ~/.profile и добавлен source ~/.wsl_startup.sh" >> $LOG_FILE
     fi
-    sudo bash -c 'echo "[automount]" > /etc/wsl.conf'
-    sudo bash -c 'echo "root = /" >> /etc/wsl.conf'
-    sudo bash -c 'echo "options = "metadata"' >> /etc/wsl.conf'
-    sudo bash -c 'echo "[boot]" >> /etc/wsl.conf'
-    sudo bash -c 'echo "command = /bin/bash ~/.wsl_startup.sh"' >> /etc/wsl.conf'
-    echo "Настроен автозапуск WSL для выполнения ~/.wsl_startup.sh" >> $LOG_FILE
 } >> $LOG_FILE 2>&1
 
 echo "🎉 Установка завершена! 🎉 Пожалуйста, следуйте инструкциям в файле README.md."
