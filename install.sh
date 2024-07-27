@@ -25,17 +25,13 @@ echo "🔧 Установка фреймворка..."
 {
     if ! grep -q "source ~/.bashrc" ~/.bash_profile 2>/dev/null; then
         echo "source ~/.bashrc" >> ~/.bash_profile
+        echo "source ~/.bashrc добавлен в ~/.bash_profile" >> $LOG_FILE
     fi
 
     if ! grep -q "source ~/.bashrc" ~/.profile 2>/dev/null; then
         echo "source ~/.bashrc" >> ~/.profile
+        echo "source ~/.bashrc добавлен в ~/.profile" >> $LOG_FILE
     fi
-} >> $LOG_FILE 2>&1
-
-# Проверка, что изменения в .bashrc применились
-{
-    source ~/.bashrc
-    echo "source ~/.bashrc добавлен в ~/.bash_profile и ~/.profile" >> $LOG_FILE
 } >> $LOG_FILE 2>&1
 
 echo "🎉 Установка завершена! 🎉 Пожалуйста, следуйте инструкциям в файле README.md."
