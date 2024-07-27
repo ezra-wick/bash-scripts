@@ -18,8 +18,12 @@ git branch -M main
 git push -u origin main
 
 # Установка команды для автоматического вызова .bashrc при запуске
-if ! grep -q "source ~/.bashrc" ~/.bash_profile; then
+if ! grep -q "source ~/.bashrc" ~/.bash_profile 2>/dev/null; then
     echo "source ~/.bashrc" >> ~/.bash_profile
+fi
+
+if ! grep -q "source ~/.bashrc" ~/.profile 2>/dev/null; then
+    echo "source ~/.bashrc" >> ~/.profile
 fi
 
 echo "🎉 Установка завершена! 🎉 Пожалуйста, следуйте инструкциям в файле README.md."
