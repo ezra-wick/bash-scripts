@@ -30,23 +30,32 @@ echo "🔧 Установка фреймворка..."
     echo "Создан скрипт автозапуска ~/.wsl_startup.sh" >> $LOG_FILE
 } >> $LOG_FILE 2>&1
 
-# Настройка автозапуска через .profile или .bash_profile
+# Проверка и установка необходимых пакетов
 {
-    if [ -f ~/.profile ]; then
-        if ! grep -q "source ~/.wsl_startup.sh" ~/.profile; then
-            echo "source ~/.wsl_startup.sh" >> ~/.profile
-            echo "source ~/.wsl_startup.sh добавлен в ~/.profile" >> $LOG_FILE
-        fi
-    elif [ -f ~/.bash_profile ]; then
-        if ! grep -q "source ~/.wsl_startup.sh" ~/.bash_profile; then
-            echo "source ~/.wsl_startup.sh" >> ~/.bash_profile
-            echo "source ~/.wsl_startup.sh добавлен в ~/.bash_profile" >> $LOG_FILE
-        fi
-    else
-        # Если оба файла отсутствуют, создаем ~/.profile
-        echo "source ~/.wsl_startup.sh" > ~/.profile
-        echo "Создан ~/.profile и добавлен source ~/.wsl_startup.sh" >> $LOG_FILE
-    fi
+    echo "🔍 Проверка необходимых пакетов..."
+    sudo apt update
+    sudo apt install -y git curl wget
+    echo "✅ Необходимые пакеты установлены." >> $LOG_FILE
 } >> $LOG_FILE 2>&1
 
+# Настройка переменных окружения
+{
+    echo "🔧 Настройка переменных окружения..."
+    echo "export GITHUB_USER=$github_user" >> ~/.bashrc
+    echo "export REPO_NAME=$repo_name" >> ~/.bashrc
+    echo "Переменные окружения добавлены в ~/.bashrc." >> $LOG_FILE
+} >> $LOG_FILE 2>&1
+
+# Источник и выполнение команд из commands.sh
+if [ -f "commands.sh" ]; then
+    source commands.sh >> $LOG_FILE 2>&1
+    echo "📜 Файл commands.sh выполнен." >> $LOG_FILE
+else
+    echo "⚠️  Внимание: файл commands.sh не найден!" >> $LOG_FILE
+fi
+
+source ~/.bashrc
+
 echo "🎉 Установка завершена! 🎉 Пожалуйста, следуйте инструкциям в файле README.md."
+echo "Чтобы начать использование фреймворка, выполните команду:"
+echo "🖥️  source commands.sh"
