@@ -131,9 +131,6 @@ add_alias_if_not_exists() {
     fi
 }
 
-# Загрузка команд
-load_commands
-
 # Установка алиасов
 add_alias_if_not_exists "prp" "poetry run python"
 add_alias_if_not_exists "run" "DEBUG=True poetry run python manage.py runserver"
@@ -153,16 +150,26 @@ if ! grep -qF 'export PATH="/usr/local/bin:$PATH"' "$BASHRC_PATH"; then
     echo 'export PATH="/usr/local/bin:$PATH"' >> "$BASHRC_PATH"
 fi
 
+# Функция для регистрации алиасов в текущей сессии
+register_command_in_current_session() {
+    local key="$1"
+    local command="${commands[$key]}"
+    alias "$key"="$command"
+    log "Команда '$key' зарегистрирована в текущей сессии"
+}
+
+
 # Функция для добавления команды с автоматическим сохранением
 add_command() {
     local key="$1"
     local command="$2"
     commands["$key"]="$command"
     save_commands
-    register_command_in_bashrc "$key"
+    register_command_in_current_session "$key"
     echo -e "${GREEN}✅ Команда '$key' успешно добавлена!${NC}"
     log "Команда '$key' добавлена с командой '$command'"
 }
+
 
 # Функция для редактирования команды
 edit_command() {
@@ -226,6 +233,15 @@ register_command_in_bashrc() {
         log "Команда '$key' зарегистрирована в .bashrc"
     fi
 }
+
+load_and_register_commands() {
+    load_commands
+    for key in "${!commands[@]}"; do
+        register_command_in_current_session "$key"
+    done
+}
+
+load_and_register_commands
 
 # Функции для управления путями
 addpath() {
