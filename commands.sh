@@ -332,8 +332,23 @@ combine_commands() {
         fi
     done
     combined_command="${combined_command::-4}" # Удаление последнего ' && '
+
+    # Добавление новой комбинированной команды
     add_command "$new_key" "$combined_command"
+
+    # Регистрация новой команды в текущей сессии
+    register_command_in_current_session "$new_key"
+
+    echo -e "${GREEN}✅ Команда '$new_key' успешно создана из команд: $@${NC}"
     log "Скомбинирована команда '$new_key' из команд: $@"
+}
+
+# Функция для регистрации алиасов в текущей сессии
+register_command_in_current_session() {
+    local key="$1"
+    local command="${commands[$key]}"
+    alias "$key"="$command"
+    log "Команда '$key' зарегистрирована в текущей сессии"
 }
 
 
