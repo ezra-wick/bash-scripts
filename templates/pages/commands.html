@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Команды{% endblock %}
+
+{% block content %}
+<div class="absolute inset-0 z-10 bg-transparent text-white flex items-center justify-center min-h-screen">
+    <div class="w-full p-4">
+        <div class="mb-4 flex justify-between items-center">
+            <input type="text" placeholder="Поиск по имени команды..." class="search-bar" id="searchInput">
+            <button class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition" id="addCommandButton">
+                <i class="fas fa-plus-square text-3xl neon-icon"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="commandsContainer">
+            <!-- Карточки команд будут добавлены сюда динамически -->
+        </div>
+    </div>
+</div>
+
+<!-- Форма редактирования и создания команды -->
+<div id="commandModal" class="hidden fixed inset-0 z-20 bg-black bg-opacity-75 flex items-center justify-center">
+    <div class="bg-gray-800 p-4 rounded-lg max-w-sm w-full">
+        <h2 class="text-white text-xl mb-4" id="modalTitle">Редактировать Команду</h2>
+        <input type="text" id="commandName" placeholder="Название команды" class="w-full mb-4 p-2 bg-gray-700 text-white rounded">
+        <textarea id="commandDescription" placeholder="Описание команды" class="w-full mb-4 p-2 bg-gray-700 text-white rounded"></textarea>
+        <button id="saveButton" class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition">Сохранить</button>
+        <button id="cancelButton" class="neon-border px-4 py-2 text-white hover:bg-red-700 transition mt-2">Отмена</button>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById('searchInput');
+        const commandsContainer = document.getElementById('commandsContainer');
+        const addCommandButton = document.getElementById('addCommandButton');
+        const commandModal = document.getElementById('commandModal');
+        const commandName = document.getElementById('commandName');
+        const commandDescription = document.getElementById('commandDescription');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
+        let editingCommandId = null;
+    
+        // Функция для загрузки команд
+        function loadCommands(query = '') {
+            fetch(`/api/commands/?${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    commandsContainer.innerHTML = '';
+                    data.forEach(command => {
+                        const commandElement = createCommandElement(command);
+                        commandsContainer.appendChild(commandElement);
+                    });
+                });
+        }
+    
+        // Функция для создания элемента команды
+        function createCommandElement(command) {
+            const div = document.createElement('div');
+            div.className = 'neon-border p-4';
+    
+            div.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-code neon-icon text-3xl mr-4"></i>
+                    <h2 class="text-xl font-bold">${command.command}</h2>
+                </div>
+                <p class="text-gray-400">Описание: <span class="text-white">${command.description || 'Нет описания'}</span></p>
+                <p class="text-gray-400">Создано: <span class="text-white">${new Date(command.created).toLocaleDateString()}</span></p>
+                <div class="flex justify-between mt-4">
+                    <button class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition" onclick="editCommand(${command.id}, '${command.command}', '${command.description || ''}')">Редактировать</button>
+                    <button class="neon-border px-4 py-2 text-white hover:bg-red-700 transition" onclick="deleteCommand(${command.id})">Удалить</button>
+                </div>
+            `;
+    
+            return div;
+        }
+    
+        // Поиск команд по имени
+        searchInput.addEventListener('input', () => {
+            const query = `command__icontains=${searchInput.value}`;
+            loadCommands(query);
+        });
+    
+        // Загрузка команд при загрузке страницы
+        loadCommands();
+    
+        // Функция для редактирования команды
+        window.editCommand = function(id, name, description) {
+            editingCommandId = id;
+            commandName.value = name;
+            commandDescription.value = description;
+            document.getElementById('modalTitle').innerText = 'Редактировать Команду';
+            commandModal.classList.remove('hidden');
+        }
+    
+        // Функция для сохранения изменений
+        saveButton.addEventListener('click', () => {
+            const updatedName = commandName.value;
+            const updatedDescription = commandDescription.value;
+            const url = editingCommandId ? `/api/commands/${editingCommandId}/` : '/api/commands/';
+            const method = editingCommandId ? 'PATCH' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ command: updatedName, description: updatedDescription })
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadCommands();
+                    commandModal.classList.add('hidden');
+                } else {
+                    console.error('Не удалось обновить команду');
+                }
+            });
+        });
+    
+        // Закрытие модального окна
+        cancelButton.addEventListener('click', () => {
+            commandModal.classList.add('hidden');
+        });
+    
+        // Функция для добавления новой команды
+        addCommandButton.addEventListener('click', () => {
+            editingCommandId = null;
+            commandName.value = '';
+            commandDescription.value = '';
+            document.getElementById('modalTitle').innerText = 'Создать Команду';
+            commandModal.classList.remove('hidden');
+        });
+    
+        // Функция для удаления команды
+        window.deleteCommand = function(id) {
+            if (confirm("Вы уверены, что хотите удалить эту команду?")) {
+                fetch(`/api/commands/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadCommands();
+                    } else {
+                        console.error('Не удалось удалить команду');
+                    }
+                });
+            }
+        }
+    
+        // Функция для получения CSRF токена
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}
+

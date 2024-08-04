@@ -1,0 +1,40 @@
+<style>
+    /* 🎨 Стили для кастомного курсора */
+body, html {
+    cursor: none;
+}
+
+.custom-cursor {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ff00ff;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: transform 0.1s ease, background-color 0.3s ease;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+}
+
+.custom-cursor.active {
+    background-color: #ff00ff;
+    transform: translate(-50%, -50%) scale(1.5);
+}
+
+body {
+    cursor: none;
+}
+
+body * {
+    cursor: none;
+}
+
+/* Вспомогательные стили для анимации */
+.button-container:hover .custom-cursor,
+.button:hover .custom-cursor {
+    transform: translate(-50%, -50%) scale(1.5);
+    background-color: #ff00ff;
+}
+
+
+</style>

@@ -14,13 +14,9 @@ PATHS_FILE="$HOME/paths.json"
 
 # Создание директории для скрипта в home, если не существует
 mkdir -p "$TARGET_DIR"
-# Копирование скрипта или директории в TARGET_DIR
-if [ -d "$SCRIPT_PATH" ]; then
-    # Исключение скрытых директорий, таких как .git
-    rsync -a --exclude='.git' "$SCRIPT_PATH/" "$TARGET_DIR/"
-else
-    cp "$SCRIPT_PATH" "$TARGET_PATH"
-fi
+sudo apt install jq
+# Копирование скрипта в TARGET_DIR
+cp "$SCRIPT_PATH" "$TARGET_PATH"
 
 # Создание файла paths.json, если его нет
 if [ ! -f "$PATHS_FILE" ]; then
@@ -159,7 +155,6 @@ register_command_in_current_session() {
     local key="$1"
     local command="${commands[$key]}"
     alias "$key"="$command"
-    register_command_in_bashrc "$key"
     log "Команда '$key' зарегистрирована в текущей сессии"
 }
 
@@ -360,35 +355,35 @@ register_command_in_current_session() {
 # 🆘 Функция для отображения помощи с примерами использования
 show_help() {
     echo -e "\n${CYAN}ℹ️  Доступные команды и функции:${NC}\n"
-    sleep 0.3
+    sleep 0.5
     echo -e "${YELLOW}➕ add_command <ключ> <команда>${NC}      - Добавить команду"
     echo -e "${GRAY}   Пример: add_command start 'python3 app.py'${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}✏️ edit_command <ключ> <команда>${NC}     - Редактировать команду"
     echo -e "${GRAY}   Пример: edit_command start 'python3 server.py'${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}🗑️ delete_command <ключ>${NC}              - Удалить команду"
     echo -e "${GRAY}   Пример: delete_command start${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}▶️ execute_command <ключ>${NC}             - Выполнить команду"
     echo -e "${GRAY}   Пример: execute_command start${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}🔍 list_commands${NC}                       - Показать все команды"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}➕ addpath <ключ>${NC}                      - Добавить текущий путь по ключу"
     echo -e "${GRAY}   Пример: addpath project${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}▶️ goto <ключ>${NC}                        - Перейти к пути по ключу"
     echo -e "${GRAY}   Пример: goto project${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}🔍 listpaths${NC}                         - Показать все сохраненные пути"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}🗑️ removepath <ключ>${NC}                   - Удалить путь по ключу"
     echo -e "${GRAY}   Пример: removepath project${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}🔗 combine_commands <новый_ключ> <ключ1> <ключ2> ...${NC} - Комбинировать несколько команд"
     echo -e "${GRAY}   Пример: combine_commands all start stop${NC}"
-    sleep 0.1
+    sleep 0.3
     echo -e "\n${YELLOW}📖 show_help${NC}                         - Показать это сообщение"
     log "Показано сообщение помощи"
 }

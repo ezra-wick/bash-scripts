@@ -1,0 +1,154 @@
+<style>
+    .command-cell {
+        border: 2px dashed #4a5568;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        min-width: 200px;
+        height: 50px;
+        flex-grow: 1;
+    }
+    .command-cell.add-button {
+        border-style: dashed;
+        width: 200px;
+    }
+    .command-item {
+        padding: 8px;
+        background-color: #2d3748;
+        color: #cbd5e0;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-grow: 1;
+        min-width: 200px;
+        height: 50px;
+    }
+    .command-item:hover {
+        background-color: #4a5568;
+    }
+    .command-item .move-handle {
+        cursor: grab;
+    }
+    .command-item .command-text {
+        flex-grow: 1;
+        margin-left: 10px;
+        word-break: break-word;
+    }
+    .command-item .delete-btn {
+        margin-left: 10px;
+        cursor: pointer;
+        color: #e53e3e;
+    }
+    .commands-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .create-button {
+        background-color: #38a169;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+        cursor: pointer;
+        border: none;
+        transition: background-color 0.3s ease;
+    }
+    .create-button:hover {
+        background-color: #2f855a;
+    }
+    .create-button i {
+        margin-right: 5px;
+    }
+    .card {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .card:hover {
+        border-color: #ff00ff;
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
+    }
+    .scroll-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .search-bar {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        padding: 10px;
+        width: 100%;
+        color: white;
+        margin-bottom: 20px;
+    }
+</style>
+
+<style>
+    .card {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+        transition: filter 0.3s ease;
+        width: 100%; /* Добавлено */
+    }
+    .neon-border {
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+    .neon-border:hover {
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
+        transform: none; /* Убираем scale */
+    }
+    .card-container {
+        display: flex;
+        flex-direction: column; /* Изменено */
+        gap: 20px;
+    }
+    .card-container:hover .card:not(:hover) {
+        filter: blur(2px);
+    }
+    .search-bar {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        padding: 10px;
+        width: 100%;
+        color: white;
+        margin-bottom: 20px;
+    }
+    .scroll-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .edit-icon, .delete-icon {
+        cursor: pointer;
+        color: white;
+        transition: color 0.3s ease;
+    }
+    .edit-icon:hover, .delete-icon:hover {
+        color: #ff00ff;
+    }
+    
+</style>
+

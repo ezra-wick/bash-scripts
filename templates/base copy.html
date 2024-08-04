@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Synthwave Space</title>
+    <style>
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background: black; 
+        }
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%;
+            position: absolute;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <div class="content">
+        <h1>Terminal Dashboard</h1>
+        <p>Enjoy the synthwave experience</p>
+        <!-- Добавьте здесь любой другой контент -->
+    </div>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+        var engine = new BABYLON.Engine(canvas, true);
+
+        var simplex = new SimplexNoise();
+        var noiseScale = 0.005;
+        var time = 0;
+
+        var createScene = function() {
+            var scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Черный фон
+
+            var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 2, -10), scene);
+            camera.setTarget(new BABYLON.Vector3(0, 2, 0));
+            camera.inputs.clear(); // Отключение управления камерой пользователем
+
+            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
+
+            // Земля (низ) с анимацией
+            var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
+            var gridMaterial = new BABYLON.GridMaterial("grid", scene);
+            gridMaterial.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8);
+            gridMaterial.majorUnitFrequency = 5;
+            gridMaterial.minorUnitVisibility = 0.45;
+            gridMaterial.gridRatio = 0.5;
+            ground.material = gridMaterial;
+
+            // Удаление небесного элемента
+            scene.removeMesh(scene.getMeshByName("sky"));
+
+            var speed = 0.02;
+
+            scene.registerBeforeRender(function() {
+                camera.position.z += speed;
+                if (camera.position.z > 500) {
+                    camera.position.z = -500;
+                }
+
+                // Обновление фона с использованием шума
+                time += 0.01;
+                var noiseValue = (simplex.noise3D(time * noiseScale, time * noiseScale, time * noiseScale) + 1) / 2;
+                var colorValue = noiseValue * 0.5 + 0.5;
+                scene.clearColor = new BABYLON.Color4(colorValue * 0.2, colorValue * 0.1, colorValue * 0.3, 1);
+            });
+
+            return scene;
+        };
+
+        var scene = createScene();
+        engine.runRenderLoop(function() {
+            scene.render();
+        });
+
+        window.addEventListener("resize", function() {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Комбинации{% endblock %}
+{% block content %}
+{% include 'pages/includes/commandset_styles.html' %}
+<div class="container mx-auto py-8 z-10">
+    <h1 class="text-2xl font-bold mb-4">Create Command Set</h1>
+    <form id="commandSetForm">
+        <div class="mb-4">
+            <input type="hidden" id="commandSetId" value="">
+            <label class="block text-gray-700">Name:</label>
+            <input type="text" id="commandSetName" class="search-bar" placeholder="Enter command set name">
+        </div>
+        <div id="commandsContainer" class="commands-container mb-4">
+            <!-- Начальная ячейка с кнопкой для добавления команды -->
+            <div class="command-cell add-button" onclick="openCommandModal()">
+                <i class="fas fa-plus text-3xl text-gray-400"></i>
+            </div>
+        </div>
+        <div id="buttonsContainer" class="flex justify-end space-x-4 pb-3 hidden">
+            <button type="button" id="resetFormButton" class="reset-button button text-white">
+                <i class="fa fa-redo"></i>
+            </button>
+            
+            <button type="submit" class="create-button button text-white bg-green-500">
+                <i class="fas fa-save"></i>
+            </button>
+        </div>
+    </form>
+  {% include "pages/includes/commandset_list.html" %}
+</div>
+
+<!-- Модальное окно для выбора или создания команды -->
+<div id="commandModal" class="modal z-20">
+    <div class="modal-content">
+        <span id="cancelButton" class="close-btn">&times;</span>
+        <h2 class="text-xl">Add Command</h2>
+        <input type="text" id="searchCommandInput" placeholder="Search commands..." class="search-bar">
+        <div id="commandResults" class="mb-4">
+            <!-- Результаты поиска команд будут отображаться здесь -->
+        </div>
+        <button id="createCommandButton" class="button neon-border">
+            <i class="fas fa-plus neon-icon"></i>
+            Create New Command
+        </button>
+    </div>
+</div>
+<!-- Модальное окно для удаления команды -->
+<div id="deleteModal" class="modal z-20">
+    <div class="modal-content">
+        <span id="closeDeleteModal" class="close-btn">&times;</span>
+        <h2 class="text-xl">Confirm Deletion</h2>
+        <p>Are you sure you want to delete this command set?</p>
+        <div class="button-row">
+            <button id="confirmDeleteButton" class="button red-border">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <button id="cancelDeleteButton" class="button gray-border">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const commandSetForm = document.getElementById('commandSetForm');
+        const commandSetName = document.getElementById('commandSetName');
+        const commandsContainer = document.getElementById('commandsContainer');
+        const commandModal = document.getElementById('commandModal');
+        const searchCommandInput = document.getElementById('searchCommandInput');
+        const commandResults = document.getElementById('commandResults');
+        const createCommandButton = document.getElementById('createCommandButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const commandSetIdField = document.getElementById('commandSetId');
+
+        const searchCommandSetInput = document.getElementById('searchCommandSetInput');
+        const commandSetList = document.getElementById('commandSetList');
+
+        let commands = [];
+        let editingCommandSetId = null; // Track the ID of the command set being edited
+        const resetFormButton = document.getElementById('resetFormButton');
+
+        resetFormButton.addEventListener('click', () => {
+            commandSetForm.reset();
+            commandsContainer.innerHTML = '<div class="command-cell add-button" onclick="openCommandModal()"><i class="fas fa-plus text-3xl text-gray-400"></i></div>';
+            commands = [];
+            toggleButtonsVisibility();
+        });
+        searchCommandSetInput.addEventListener('input', () => {
+            const query = searchCommandSetInput.value;
+            updateCommandSetList(query);
+
+        });
+
+        function populateCommands(commands) {
+            commandsContainer.innerHTML = '';
+            commands.forEach(commandOrder => {
+                const command = commandOrder.command;
+                const commandItem = document.createElement('div');
+                commandItem.className = 'command-item';
+                commandItem.setAttribute('draggable', true);
+                commandItem.setAttribute('data-id', command.id);
+                commandItem.innerHTML = `
+                    <i class="fas fa-bars move-handle"></i>
+                    <span class="command-text">${command.command}</span>
+                    <i class="fas fa-times delete-btn"></i>
+                `;
+                commandItem.querySelector('.delete-btn').onclick = () => {
+                    commandsContainer.removeChild(commandItem);
+                    commands = commands.filter(c => c.id !== command.id);
+                };
+                commandItem.querySelector('.command-text').ondblclick = () => {
+                    const newCommand = prompt('Edit command:', command.command);
+                    if (newCommand) {
+                        command.command = newCommand;
+                        commandItem.querySelector('.command-text').textContent = newCommand;
+                    }
+                };
+                commandsContainer.appendChild(commandItem);
+                
+                addDragAndDropListeners(commandItem);
+            });
+            const addButton = document.createElement('div');
+            addButton.className = 'command-cell add-button';
+            addButton.setAttribute('onclick', 'openCommandModal()');
+            addButton.innerHTML = '<i class="fas fa-plus text-3xl text-gray-400"></i>';
+            commandsContainer.appendChild(addButton);
+            toggleButtonsVisibility();
+        }
+        const deleteModal = document.getElementById('deleteModal');
+        const closeDeleteModal = document.getElementById('closeDeleteModal');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+    
+        let commandSetIdToDelete = null;
+        closeDeleteModal.onclick = () => {
+            deleteModal.classList.remove('active');
+            commandSetIdToDelete = null;
+        };
+    
+        cancelDeleteButton.onclick = () => {
+            deleteModal.classList.remove('active');
+            commandSetIdToDelete = null;
+        };
+    
+        function deleteCommandSet(id) {
+            commandSetIdToDelete = id;
+            deleteModal.classList.add('active');
+        }
+    
+        confirmDeleteButton.onclick = () => {
+            if (commandSetIdToDelete) {
+                fetch(`/api/commandsets/${commandSetIdToDelete}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        onSuccessGreen();
+                        updateCommandSetList();
+                    } else {
+                        onSuccessRed();
+                    }
+                    deleteModal.classList.remove('active');
+                    commandSetIdToDelete = null;
+                });
+            }
+        };
+    
+
+        function addDragAndDropListeners(element) {
+            element.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', e.target.innerHTML);
+                e.dataTransfer.dropEffect = 'move';
+                e.target.classList.add('dragging');
+                onSuccessGreen
+            });
+
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const draggingItem = document.querySelector('.dragging');
+                if (draggingItem) {
+                    draggingItem.classList.remove('dragging');
+                    e.target.closest('.command-item').before(draggingItem);
+                }
+            });
+
+            element.addEventListener('dragend', () => {
+                const draggingItem = document.querySelector('.dragging');
+                if (draggingItem) {
+                    draggingItem.classList.remove('dragging');
+                }
+            });
+        }
+
+        window.openCommandModal = function() {
+            commandModal.classList.add('active');
+        };
+
+        searchCommandInput.addEventListener('input', () => {
+            const query = searchCommandInput.value;
+            fetch(`/api/commands/?search=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    commandResults.innerHTML = '';
+                    console.log(data)
+                    data.forEach(command => {
+                        const commandElement = document.createElement('div');
+                        commandElement.className = 'command-result p-2 bg-gray-700 text-white rounded mb-2 cursor-pointer';
+                        commandElement.textContent = command.command;
+                        commandElement.onclick = () => {
+                            addCommandToSet(command);
+                        };
+                        commandResults.appendChild(commandElement);
+                    });
+                });
+        });
+
+        createCommandButton.addEventListener('click', () => {
+            const commandName = prompt('Enter command name:');
+            if (commandName) {
+                fetch('/api/commands/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ name: commandName })
+                })
+                .then(response => response.json())
+                .then(command => {
+                    addCommandToSet(command);
+                });
+            }
+        });
+
+        cancelButton.addEventListener('click', () => {
+            commandModal.classList.remove('active');
+        });
+
+        function addCommandToSet(command) {
+            const commandItem = document.createElement('div');
+            commandItem.className = 'command-item';
+            commandItem.setAttribute('draggable', true);
+            commandItem.setAttribute('data-id', command.id); // Установка id команды в data-id
+            commandItem.innerHTML = `
+                <i class="fas fa-bars move-handle"></i>
+                <span class="command-text">${command.command}</span>
+                <i class="fas fa-times delete-btn"></i>
+            `;
+            commandItem.querySelector('.delete-btn').onclick = () => {
+                commandsContainer.removeChild(commandItem);
+                commands = commands.filter(c => c.id !== command.id);
+            };
+            commandItem.querySelector('.command-text').ondblclick = () => {
+                const newCommand = prompt('Edit command:', command.command);
+                if (newCommand) {
+                    command.command = newCommand;
+                    commandItem.querySelector('.command-text').textContent = newCommand;
+                }
+            };
+            commandsContainer.insertBefore(commandItem, commandsContainer.lastElementChild);
+            commands.push({ command: command.id, order: commands.length + 1 });
+            commandModal.classList.remove('active');
+            
+            addDragAndDropListeners(commandItem);
+        }
+        
+
+        commandSetForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const commandSetId = commandSetIdField.value;
+    
+            const commandElements = document.querySelectorAll('.command-item');
+            commands = Array.from(commandElements).map((commandElement, index) => ({
+                command: commandElement.getAttribute('data-id'),
+                order: index + 1
+            }));
+    
+            const commandSet = {
+                name: commandSetName.value,
+                commands: commands
+            };
+    
+            const method = commandSetId ? 'PATCH' : 'POST';
+            const url = commandSetId ? `/api/commandsets/${commandSetId}/` : '/api/commandsets/';
+    
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(commandSet)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => { throw new Error(errorData.detail || 'Unknown error'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                updateCommandSetList();
+                commandSetIdField.value = ''; // Сброс ID после сохранения
+                commandSetForm.reset();
+                commands = [];
+                populateCommands(commands);
+                onSuccessGreen();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                onSuccessRed();
+            });
+        });
+        
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function updateCommandSetList(query = '') {
+            fetch(`/api/commandsets/?search=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    commandSetList.innerHTML = '';
+                    data.forEach(commandSet => {
+                        const commandsHtml = commandSet.commands.map(commandOrder => commandOrder.command.command).join(' && ');
+                        const card = document.createElement('div');
+                        card.className = 'card neon-border';
+                        card.innerHTML = `
+                            <div>
+                                <h2 class="text-xl font-bold text-white">${commandSet.name}</h2>
+                                <p>${commandsHtml}</p>
+                            </div>
+                            <div>
+                                <i class="fas fa-edit edit-icon mr-4" data-id="${commandSet.id}"></i>
+                                <i class="fas fa-trash delete-icon" data-id="${commandSet.id}"></i>
+                            </div>
+                        `;
+                        card.querySelector('.edit-icon').addEventListener('click', () => {
+                            fetchCommandSet(commandSet.id);
+                            toggleButtonsVisibility();
+                        });
+                        card.querySelector('.delete-icon').addEventListener('click', () => {
+                            deleteCommandSet(commandSet.id);
+                        });
+                        commandSetList.appendChild(card);
+                    });
+                });
+        }
+
+        function fetchCommandSet(id) {
+            fetch(`/api/commandsets/${id}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('commandSetName').value = data.name;
+                    document.getElementById('commandSetId').value = data.id; // Установка ID в скрытое поле
+                    commands = data.commands.map(commandOrder => ({
+                        command: commandOrder.command,
+                        order: commandOrder.order
+                    }));
+                    populateCommands(data.commands);
+                });
+        }        
+
+        updateCommandSetList(); // Initial load
+    });
+    function toggleButtonsVisibility() {
+        var input = document.getElementById('commandSetName').value.trim();
+        var buttonsContainer = document.getElementById('buttonsContainer');
+        if (input) {
+            buttonsContainer.classList.remove('hidden');
+        } else {
+            buttonsContainer.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('commandSetName').addEventListener('input', toggleButtonsVisibility);
+</script>
+
+{% endblock %}

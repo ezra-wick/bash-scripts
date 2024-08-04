@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+
+
+<div class="title-content">
+    <h1 class="text-6xl font-bold">BASH Studio</h1>
+    <button id="addSpaceBtn" class="mt-8 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">Добавить пространство</button>
+</div>
+
+<div class="content">
+   
+</div>
+
+
+<!-- Модальное окно -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="closeModal">&times;</span>
+        <h2 class="text-2xl font-bold mb-4">Выберите папку</h2>
+        <select id="folderSelect" class="mb-4 px-4 py-2 border rounded-lg w-full">
+            <!-- Здесь будут загружены папки -->
+        </select>
+        <button id="createSpaceBtn" class="px-6 py-3">Создать пространство</button>
+    </div>
+</div>
+
+<!-- Контекстное меню -->
+<div id="contextMenu" class="context-menu">
+    <ul id="contextMenuItems">
+        <!-- Здесь будут динамически добавляться элементы контекстного меню -->
+    </ul>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    // Функция для загрузки последнего пространства и его папок
+    function loadLastSpaceFolders() {
+        fetch('/api/spaces/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    console.log(data.length)
+                    const lastSpaceId = data[data.length - 1].id;
+                    loadSpaceFolders(lastSpaceId);
+                    toggleVisibility();
+                }
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const content = document.querySelector('.content');
+        const smallLogo = document.getElementById("smallLogo");
+    
+        if (content.classList.contains('hidden')) {
+            smallLogo.classList.add('visible');
+        } else {
+            smallLogo.classList.remove('visible');
+            smallLogo.classList.remove('hidden');
+        }
+    });
+    
+
+    document.getElementById("addSpaceBtn").addEventListener("click", function() {
+        document.getElementById("modal").classList.add("active");
+        loadFolders();
+        toggleVisibility(); // Показываем маленькую иконку
+    });
+    
+    document.getElementById("closeModal").addEventListener("click", function() {
+        toggleVisibility(); // Прячем маленькую иконку
+        document.getElementById("modal").classList.remove("active");
+        loadLastSpaceFolders(); // Загружаем папки последнего пространства при закрытии модального окна
+    });
+    
+
+
+    document.getElementById("createSpaceBtn").addEventListener("click", function() {
+        var folderName = document.getElementById("folderSelect").value;
+        createSpace(folderName);
+    });
+
+    function loadFolders() {
+        fetch('/api/get_folders/')
+            .then(response => response.json())
+            .then(data => {
+                var folderSelect = document.getElementById("folderSelect");
+                folderSelect.innerHTML = '';
+                data.folders.forEach(folder => {
+                    var option = document.createElement("option");
+                    option.value = folder;
+                    option.textContent = folder;
+                    folderSelect.appendChild(option);
+                });
+            });
+    }
+
+    function createSpace(folderName) {
+        fetch('/api/create_space/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Если используете CSRF токен
+            },
+            body: JSON.stringify({ folder: folderName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById("modal").classList.remove("active");
+                loadLastSpaceFolders()
+            }
+        });
+    }
+
+    // Добавьте классы 'appear' после создания иконок
+function loadSpaceFolders(spaceId) {
+fetch(`/api/get_space_folders/?space_id=${spaceId}`)
+    .then(response => response.json())
+    .then(data => {
+        content.innerHTML = '';
+        const folders = [];
+        const files = [];
+
+        data.folders.concat(data.files).forEach(item => {
+            var div = document.createElement("div");
+
+            if (typeof item === 'string') {
+                if (item.includes('.')) {
+                    div.className = 'file-icon';
+                    div.innerHTML = `<i class="fas fa-file"></i><span>${item}</span>`;
+                    files.push(div);
+                } else {
+                    div.className = 'folder-icon';
+                    div.innerHTML = `<i class="fas fa-folder"></i><span>${item}</span>`;
+                    folders.push(div);
+                }
+            } else if (typeof item === 'object' && item !== null) {
+                if (item.is_folder) {
+                    div.className = 'folder-icon';
+                    div.innerHTML = `<i class="fas fa-folder"></i><span>${item.name}</span>`;
+                    folders.push(div);
+                } else {
+                    div.className = 'file-icon';
+                    div.innerHTML = `<i class="fas fa-file"></i><span>${item.name}</span>`;
+                    files.push(div);
+                }
+                div.dataset.id = item.id;
+                div.dataset.isFolder = item.is_folder;
+            }
+
+            div.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+                showContextMenu(e, item.id);
+            });
+
+            setTimeout(() => {
+                div.classList.add('appear');
+            }, 100); // Задержка для анимации
+        });
+
+        // Adding folders first, then files
+        folders.forEach(folder => content.appendChild(folder));
+        files.forEach(file => content.appendChild(file));
+    });
+}
+
+    // Показать контекстное меню
+    function showContextMenu(event, id) {
+        var x = event.pageX + 'px';
+        var y = event.pageY + 'px';
+        contextMenu.style.left = x;
+        contextMenu.style.top = y;
+        contextMenu.style.display = 'block';
+        loadContextMenuItems(id);
+    }
+
+    // Загрузить элементы контекстного меню
+    function loadContextMenuItems(folderId) {
+        fetch(`/api/commands/?folder_id=${folderId}`)
+            .then(response => response.json())
+            .then(data => {
+                var contextMenuItems = document.getElementById('contextMenuItems');
+                contextMenuItems.innerHTML = '';
+                data.forEach(commandSet => {
+                    var li = document.createElement('li');
+                    li.textContent = commandSet.name;
+                    li.addEventListener('click', function() {
+                        executeCommandSet(commandSet.id);
+                    });
+                    contextMenuItems.appendChild(li);
+                });
+            });
+    }
+
+    // Выполнение набора команд
+    function executeCommandSet(commandSetId) {
+        fetch(`/api/execute_command_set/?id=${commandSetId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id: commandSetId })
+        }).then(response => response.json())
+          .then(data => {
+              console.log('Command set executed:', data);
+          });
+    }
+
+    // Скрыть контекстное меню при клике вне его области
+    document.addEventListener('click', function (e) {
+        if (!contextMenu.contains(e.target)) {
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    // Загрузка папок последнего пространства при загрузке страницы
+    document.addEventListener("DOMContentLoaded", loadLastSpaceFolders);
+
+    // Функция для получения CSRF токена
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

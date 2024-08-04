@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+
+<div class="absolute inset-0 z-10 bg-transparent text-white flex items-center justify-center min-h-screen">
+    <div class="w-full p-4">
+        <div class="mb-4 flex justify-between items-center">
+            <input type="text" placeholder="Search by name or identifier..." class="search-bar" id="searchInput">
+            <button class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition" id="addTerminalButton">
+                <i class="fas fa-plus-circle text-3xl neon-icon"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="terminalsContainer">
+            <!-- Карточки терминалов будут добавлены сюда динамически -->
+        </div>
+    </div>
+</div>
+
+<div id="editModal" class="hidden fixed inset-0 z-20 bg-black bg-opacity-75 flex items-center justify-center">
+    <div class="bg-gray-800 p-4 rounded-lg max-w-sm w-full">
+        <h2 class="text-white text-xl mb-4">Edit Terminal</h2>
+        <input type="text" id="editName" placeholder="Name" class="w-full mb-4 p-2 bg-gray-700 text-white rounded">
+        <button id="saveButton" class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition">Save</button>
+        <button id="cancelButton" class="neon-border px-4 py-2 text-white hover:bg-red-700 transition mt-2">Cancel</button>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById('searchInput');
+        const terminalsContainer = document.getElementById('terminalsContainer');
+        const addTerminalButton = document.getElementById('addTerminalButton');
+        const editModal = document.getElementById('editModal');
+        const editName = document.getElementById('editName');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
+        let editingTerminalId = null;
+    
+        // Функция для загрузки терминалов
+        function loadTerminals(query = '') {
+            fetch(`/api/terminals/?${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    terminalsContainer.innerHTML = '';
+                    data.forEach(terminal => {
+                        const terminalElement = createTerminalElement(terminal);
+                        terminalsContainer.appendChild(terminalElement);
+                    });
+                });
+        }
+
+        
+        // Функция для создания элемента терминала
+        function createTerminalElement(terminal) {
+            const div = document.createElement('div');
+            div.className = 'neon-border p-4';
+    
+            div.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-terminal neon-icon text-3xl mr-4"></i>
+                    <h2 class="text-xl font-bold">${terminal.name}</h2>
+                </div>
+                <p class="text-gray-400">Identifier: <span class="text-white">${terminal.identifier}</span></p>
+                <p class="text-gray-400">Connected: <span class="text-white">${terminal.connected ? 'Yes' : 'No'}</span></p>
+                <p class="text-gray-400">User: <span class="text-white">${terminal.user ? terminal.user.username : 'None'}</span></p>
+                <p class="text-gray-400">Created: <span class="text-white">${new Date(terminal.created).toLocaleDateString()}</span></p>
+                <div class="flex justify-between mt-4">
+                    <button class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition" onclick="editTerminal(${terminal.id}, '${terminal.name}')">Edit</button>
+                    <button class="neon-border px-4 py-2 text-white hover:bg-red-700 transition" onclick="deleteTerminal(${terminal.id})">Delete</button>
+                </div>
+            `;
+    
+            return div;
+        }
+    
+        // Поиск терминалов по имени или идентификатору
+        searchInput.addEventListener('input', () => {
+            const value = searchInput.value;
+            const query = `name__icontains=${value}&identifier__icontains=${value}`;
+            loadTerminals(query);
+        });
+    
+        // Загрузка терминалов при загрузке страницы
+        loadTerminals();
+    
+        // Функция для редактирования терминала
+        window.editTerminal = function(id, name) {
+            editingTerminalId = id;
+            editName.value = name;
+            editModal.classList.remove('hidden');
+        }
+    
+        // Функция для сохранения изменений
+        saveButton.addEventListener('click', () => {
+            const updatedName = editName.value;
+            fetch(`/api/terminals/${editingTerminalId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ name: updatedName })
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadTerminals();
+                    editModal.classList.add('hidden');
+                    onSuccessGreen();
+                } else {
+                    console.error('Failed to update terminal');
+                    onSuccessRed()
+                }
+            });
+        });
+    
+        // Закрытие модального окна
+        cancelButton.addEventListener('click', () => {
+            editModal.classList.add('hidden');
+        });
+    
+        // Функция для добавления нового терминала
+        addTerminalButton.addEventListener('click', () => {
+            fetch('/api/start_terminal/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'), // Передача CSRF-токена
+                    'Content-Type': 'application/json' // Если требуется JSON, добавьте этот заголовок
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadTerminals();
+                    onSuccessGreen();
+                } else {
+                    console.error('Failed to add terminal');
+                    onSuccessRed();
+                }
+            });
+        });
+    
+        // Функция для удаления терминала
+        window.deleteTerminal = function(id) {
+            if (confirm("Are you sure you want to delete this terminal?")) {
+                fetch(`/api/terminals/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadTerminals();
+                        onSuccessGreen();
+                    } else {
+                        console.error('Failed to delete terminal');
+                        onSuccessRed();
+                    }
+                });
+            }
+        }
+    
+        // Функция для получения CSRF токена
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+    
+</script>
+{% endblock %}

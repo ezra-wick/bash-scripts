@@ -1,0 +1,13 @@
+/* styles.css */
+body {
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .container {
+    max-width: 800px;
+  }
+  
+  button {
+    transition: background-color 0.3s ease;
+  }
+  

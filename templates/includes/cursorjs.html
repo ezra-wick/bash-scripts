@@ -1,0 +1,21 @@
+<!-- Добавьте этот блок внутри <body> -->
+<div id="customCursor" class="custom-cursor"></div>
+
+
+<script>
+    // Добавьте этот скрипт в блок <script>
+document.addEventListener('mousemove', function(e) {
+    const cursor = document.getElementById('customCursor');
+    cursor.style.left = `${e.clientX}px`;
+    cursor.style.top = `${e.clientY}px`;
+});
+
+document.addEventListener('mousedown', function() {
+    document.getElementById('customCursor').classList.add('active');
+});
+
+document.addEventListener('mouseup', function() {
+    document.getElementById('customCursor').classList.remove('active');
+});
+
+</script>

@@ -1,0 +1,12 @@
+/* colors.css */
+:root {
+    --color-background: #121212;
+    --color-neon-blue: #00f0ff;
+    --color-neon-pink: #ff00f0;
+    --color-neon-green: #0aff00;
+    --color-neon-yellow: #fff700;
+    --color-white: #ffffff;
+    --color-gray-light: #b3b3b3;
+    --color-gray-dark: #2c2c2c;
+    --color-black: #000000;
+}

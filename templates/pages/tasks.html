@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Задачи{% endblock %}
+
+{% block content %}
+<div class="absolute inset-0 z-10 bg-transparent text-white flex items-center justify-center min-h-screen">
+    <div class="w-full p-4">
+        <div class="mb-4 flex justify-between items-center">
+            <input type="text" placeholder="Поиск по статусу задачи..." class="search-bar" id="searchInput">
+            <button class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition" id="addTaskButton">
+                <i class="fas fa-plus-square text-3xl neon-icon"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="tasksContainer">
+            <!-- Карточки задач будут добавлены сюда динамически -->
+        </div>
+    </div>
+</div>
+
+<!-- Форма редактирования и создания задачи -->
+<div id="taskModal" class="hidden fixed inset-0 z-20 bg-black bg-opacity-75 flex items-center justify-center">
+    <div class="bg-gray-800 p-4 rounded-lg max-w-sm w-full">
+        <h2 class="text-white text-xl mb-4" id="modalTitle">Редактировать Задачу</h2>
+        <select id="taskTerminal" class="w-full mb-4 p-2 bg-gray-700 text-white rounded">
+            <option value="">Выберите терминал</option>
+        </select>
+        <select id="taskStatus" class="w-full mb-4 p-2 bg-gray-700 text-white rounded">
+            <option value="pending">В ожидании</option>
+            <option value="running">Выполняется</option>
+            <option value="completed">Завершено</option>
+            <option value="failed">Не выполнено</option>
+        </select>
+        <textarea id="taskOutput" placeholder="Вывод задачи" class="w-full mb-4 p-2 bg-gray-700 text-white rounded"></textarea>
+        <button id="saveButton" class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition">Сохранить</button>
+        <button id="cancelButton" class="neon-border px-4 py-2 text-white hover:bg-red-700 transition mt-2">Отмена</button>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const taskTerminal = document.getElementById('taskTerminal');
+        const taskStatus = document.getElementById('taskStatus');
+        const taskOutput = document.getElementById('taskOutput');
+        const saveButton = document.getElementById('saveButton');
+        let editingTaskId = null;
+    
+        // Функция для загрузки терминалов
+        function loadTerminals() {
+            fetch('/api/terminals/')
+                .then(response => response.json())
+                .then(data => {
+                    taskTerminal.innerHTML = '<option value="">Выберите терминал</option>';
+                    data.forEach(terminal => {
+                        const option = document.createElement('option');
+                        option.value = terminal.id;
+                        option.textContent = terminal.name;
+                        taskTerminal.appendChild(option);
+                    });
+                });
+        }
+    
+        // Функция для загрузки задач
+        function loadTasks(query = '') {
+            fetch(`/api/tasks/?${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    tasksContainer.innerHTML = '';
+                    data.forEach(task => {
+                        const taskElement = createTaskElement(task);
+                        tasksContainer.appendChild(taskElement);
+                    });
+                });
+        }
+    
+        // Функция для создания элемента задачи
+        function createTaskElement(task) {
+            const div = document.createElement('div');
+            div.className = 'neon-border p-4';
+    
+            div.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-tasks neon-icon text-3xl mr-4"></i>
+                    <h2 class="text-xl font-bold">Задача ${task.id}</h2>
+                </div>
+                <p class="text-gray-400">Статус: <span class="text-white">${task.status}</span></p>
+                <p class="text-gray-400">Терминал: <span class="text-white">${task.terminal}</span></p>
+                <p class="text-gray-400">Вывод: <span class="text-white">${task.output || 'Нет вывода'}</span></p>
+                <p class="text-gray-400">Создано: <span class="text-white">${new Date(task.created).toLocaleDateString()}</span></p>
+                <div class="flex justify-between mt-4">
+                    <button class="neon-border px-4 py-2 text-white hover:bg-purple-700 transition" onclick="editTask(${task.id}, ${task.terminal.id}, '${task.status}', '${task.output || ''}')">Редактировать</button>
+                    <button class="neon-border px-4 py-2 text-white hover:bg-red-700 transition" onclick="deleteTask(${task.id})">Удалить</button>
+                </div>
+            `;
+    
+            return div;
+        }
+    
+        // Поиск задач по статусу
+        searchInput.addEventListener('input', () => {
+            const query = `status__icontains=${searchInput.value}`;
+            loadTasks(query);
+        });
+    
+        // Загрузка задач и терминалов при загрузке страницы
+        loadTasks();
+        loadTerminals();
+    
+        // Функция для редактирования задачи
+        window.editTask = function(id, terminalId, status, output) {
+            editingTaskId = id;
+            taskTerminal.value = terminalId;
+            taskStatus.value = status;
+            taskOutput.value = output;
+            document.getElementById('modalTitle').innerText = 'Редактировать Задачу';
+            taskModal.classList.remove('hidden');
+        }
+    
+        // Функция для сохранения изменений
+        saveButton.addEventListener('click', () => {
+            const updatedTerminal = taskTerminal.value;
+            const updatedStatus = taskStatus.value;
+            const updatedOutput = taskOutput.value;
+            const url = editingTaskId ? `/api/tasks/${editingTaskId}/` : '/api/tasks/';
+            const method = editingTaskId ? 'PATCH' : 'POST';
+    
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    terminal: updatedTerminal,
+                    status: updatedStatus,
+                    output: updatedOutput
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadTasks();
+                    taskModal.classList.add('hidden');
+                } else {
+                    response.json().then(data => {
+                        console.error('Не удалось обновить задачу:', data);
+                    });
+                }
+            });
+        });
+    
+        // Закрытие модального окна
+        cancelButton.addEventListener('click', () => {
+            taskModal.classList.add('hidden');
+        });
+    
+        // Функция для добавления новой задачи
+        addTaskButton.addEventListener('click', () => {
+            editingTaskId = null;
+            taskTerminal.value = '';
+            taskStatus.value = '';
+            taskOutput.value = '';
+            document.getElementById('modalTitle').innerText = 'Создать Задачу';
+            taskModal.classList.remove('hidden');
+        });
+    
+        // Функция для удаления задачи
+        window.deleteTask = function(id) {
+            if (confirm("Вы уверены, что хотите удалить эту задачу?")) {
+                fetch(`/api/tasks/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadTasks();
+                    } else {
+                        console.error('Не удалось удалить задачу');
+                    }
+                });
+            }
+        }
+    
+        // Функция для получения CSRF токена
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+    
+</script>
+{% endblock %}

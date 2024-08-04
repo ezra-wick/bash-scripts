@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASH Studio</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* 🖱️ Стили для неонового скролла */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #ff00ff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        body {
+            scrollbar-width: thin;
+            scrollbar-color: #ff00ff rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-family: 'Roboto', sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .button-container {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .button {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            cursor: pointer;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .button i {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        
+        .button span {
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover span {
+            width: auto;
+            opacity: 1;
+            margin-left: 5px;
+        }
+        
+        .button:hover {
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px #ff00ff;
+            transform: scale(1.05);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 20;
+        }
+        .modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-content {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        .modal-content h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        .modal-content select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+            color: white;
+            border-radius: 10px;
+        }
+        .modal-content button {
+            background: rgba(255, 0, 255, 0.2);
+            border: 2px solid #ff00ff;
+            padding: 10px 20px;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .modal-content button:hover {
+            background: rgba(255, 0, 255, 0.3);
+            box-shadow: 0 0 10px #ff00ff;
+        }
+        .modal-content .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: white;
+        }
+        /* Измените начальное состояние для иконок папок и файлов */
+        .folder-icon, .file-icon {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+            cursor: pointer;
+            width: 120px;
+            position: relative;
+            height: 100px;
+            opacity: 0; /* Начальное состояние невидимое */
+            transform: translateY(-20px); /* Начальное состояние: смещение вверх */
+            transition: opacity 0.7s ease, transform 0.9s ease; /* Плавное появление и перемещение */
+        }
+
+        /* Плавное появление и перемещение на место */
+        .folder-icon.appear, .file-icon.appear {
+            opacity: 1;
+            transform: translateY(0); /* Возвращение на место */
+        }
+
+        
+    
+        .folder-icon:hover, .file-icon:hover {
+            transform: scale(1.1); /* Эффект увеличения при наведении */
+        }
+    
+        @keyframes fadeInMove {
+            to {
+                opacity: 1;
+                transform: translateY(0); /* Окончательное состояние: на месте */
+            }
+        }
+        .folder-icon i, .file-icon i {
+            font-size: 48px; /* Adjust icon size */
+            color: #4b6cb7; /* Blue for folders */
+        }
+        
+        .file-icon i {
+            color: #c94bff; /* Purple for files */
+        }
+        
+
+    
+        .folder-icon span, .file-icon span {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-height: 2em;
+            line-height: 1em;
+            font-size: 0.9em; /* Smaller text size */
+            padding: 5px;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 10;
+        }
+        .context-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .context-menu li {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .context-menu li:hover {
+            background: #ff00ff;
+            color: white;
+        }
+
+        
+        /* Добавить классы для анимации заголовка и лого */
+        .logo-transition {
+            transition: all 0.5s ease-in-out;
+        }
+
+        .hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Обновленные стили для маленького логотипа */
+        .small-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px; /* Изменено на левую сторону */
+            color: white;
+            color: #00ff00; /* Кислотный цвет для значка терминала */
+            text-align: center;
+            z-index: 2;
+            transition: opacity 0.3s ease, transform 0.5s ease-in-out;
+            transform: translate(50%, 50%); /* Позиционирование за пределами экрана */
+        }
+
+        .small-logo.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(0, 0); /* Возвращение на исходную позицию */
+        }
+
+        .small-logo i {
+            font-size: 24px; /* Размер значка терминала */
+            margin-right: 10px; /* Отступ между значком и текстом */
+        }
+
+        .content, .title-content {
+            position: relative;
+            z-index: 1;
+            color: white;
+            text-align: center;
+            transition: opacity 0.3s ease, transform 0.5s ease-in-out;
+            transform: translateY(-20px); /* Начальное состояние: смещение вверх */
+            animation: fadeInMove 0.9s forwards;
+        }
+        
+        .content.hidden, .title-content.hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, -50%) scale(0.5); /* Уменьшаем и перемещаем заголовок */
+        }
+        
+
+
+        .neon-border {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .neon-border:hover {
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
+            transform: scale(1.05);
+        }
+
+        .neon-icon {
+            color: #ff00ff;
+        }
+
+        .search-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            width: 100%;
+            color: white;
+            margin-right: 8px;
+        }
+        
+        .red-border {
+            border: 2px solid red;
+        }
+
+        .gray-border {
+            border: 2px solid gray;
+        }
+        .modal-content .button-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        /* ✨ Стиль для активной кнопки навигации */
+        .button.active {
+            background: rgba(255, 0, 255, 0.3);
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px #ff00ff;
+            color: white;
+        }
+
+        .small-logo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          
+          .small-logo h2 {
+            max-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: max-width 0.5s ease-in-out, opacity 0.5s ease-in-out;
+          }
+          
+          .small-logo.open h2 {
+            max-width: 1000px; /* Задайте максимальную ширину, чтобы вместить текст */
+            opacity: 1;
+          }
+          
+          .small-logo.closed h2 {
+            max-width: 0;
+            opacity: 0;
+          }
+          
+          
+        
+    </style>
+    {% include "includes/favicon.html" %}
+    {% comment %} {% include "includes/cursor.html" %} {% endcomment %}
+</head>
+<body>
+    
+    <div class="bg-transparent fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4">
+        <div id="smallLogo" class="small-logo hidden flex items-center space-x-1">
+          <i class="fas fa-terminal text-2xl"></i>
+          <h1 class="text-white text-2xl font-bold mr-3 pr-3">Studio</h1>
+          [<h2 class="text-gray-500 z-10 font-bold pr-1">{% block title %}{% endblock %} </h2>]
+        </div>
+      </div>
+      
+    {% comment %} <div class="flex justify-center mt-7">
+        {% include "plugins/humanhead.html" %}
+    </div> {% endcomment %}
+
+
+    <canvas id="renderCanvas">
+
+
+
+    </canvas>
+    {% block content %}
+
+    {% endblock %}
+
+
+    <div class="button-container relative z-10">
+        <a href="{% url 'index' %}" id="nav-home" class="button text-white">
+          <i class="fas fa-home"></i>
+          <span>Главная</span>
+        </a>
+        <a href="{% url 'terminals' %}" id="nav-terminals" class="button text-white">
+          <i class="fas fa-terminal"></i>
+          <span>Терминалы</span>
+        </a>
+        <a href="{% url 'commands' %}" id="nav-commands" class="button text-white">
+          <i class="fas fa-code"></i>
+          <span>Команды</span>
+        </a>
+        <a href="{% url 'tasks' %}" id="nav-tasks" class="button text-white">
+          <i class="fas fa-tasks"></i>
+          <span>Задачи</span>
+        </a>
+        <a href="{% url 'commandset' %}" id="nav-commandset" class="button text-white">
+          <i class="fas fa-random"></i>
+          <span>Комбинации</span>
+        </a>
+        <a href="{% url 'environment_variables' %}" id="nav-environment-variables" class="button text-white">
+          <i class="fa fa-key"></i>
+          <span>Переменные окружения</span>
+        </a>
+        <a href="/admin/" id="nav-admin" class="button text-white">
+          <i class="fas fa-cog"></i>
+          <span>Админ</span>
+        </a>
+      </div>
+    
+    
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.js"></script>
+    <script src="https://cdn.babylonjs.com/particles/babylon.particleHelper.min.js"></script>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+        var engine = new BABYLON.Engine(canvas, true);
+        var contextMenu = document.getElementById('contextMenu');
+        var content = document.querySelector('.content');
+    
+        var createScene = function() {
+            var scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Черный фон
+    
+            const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 2, -10), scene);
+            camera.setTarget(new BABYLON.Vector3(0, 2, 0));
+            camera.inputs.clear();
+    
+            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
+    
+            // Земля (низ) с анимацией
+            var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
+            var gridMaterial = new BABYLON.GridMaterial("grid", scene);
+            gridMaterial.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8);
+            gridMaterial.majorUnitFrequency = 5;
+            gridMaterial.minorUnitVisibility = 0.45;
+            gridMaterial.gridRatio = 0.5;
+            ground.material = gridMaterial;
+    
+            // Плавное движение камеры
+            var speed = 0.05;
+            scene.registerBeforeRender(function() {
+                camera.position.z += speed;
+                if (camera.position.z > 500) {
+                    camera.position.z = -500;
+                }
+            });
+    
+            // Изменение параметров системы частиц
+            var particleSystem = new BABYLON.ParticleSystem("particles", 200, scene);
+            particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs.com/assets/Flare.png", scene);
+            particleSystem.minEmitBox = new BABYLON.Vector3(-0.2, 0, 0);
+            particleSystem.maxEmitBox = new BABYLON.Vector3(0.2, 0, 0);
+            particleSystem.color1 = new BABYLON.Color4(0.8, 0.1, 0.8, 0.5);
+            particleSystem.color2 = new BABYLON.Color4(0.5, 0, 0.5, 0.3);
+            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+            particleSystem.minSize = 0.02;
+            particleSystem.maxSize = 0.1;
+            particleSystem.minLifeTime = 0.4;
+            particleSystem.maxLifeTime = 0.8;
+            particleSystem.emitRate = 100;
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+            particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+            particleSystem.direction1 = new BABYLON.Vector3(-0.2, 1, 0.2);
+            particleSystem.direction2 = new BABYLON.Vector3(0.2, 1, -0.2);
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+            particleSystem.minEmitPower = 0.3;
+            particleSystem.maxEmitPower = 1.0;
+            particleSystem.updateSpeed = 0.015;
+            particleSystem.start();
+    
+            // Обновление позиции системы частиц на основе позиции курсора
+            canvas.addEventListener("mousemove", function(event) {
+                var pickResult = scene.pick(event.clientX, event.clientY);
+                if (pickResult.hit) {
+                    particleSystem.emitter = pickResult.pickedPoint;
+                }
+            });
+    
+            var faceMesh = BABYLON.MeshBuilder.CreateLineSystem("faceMesh", {lines: [[new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 1, 0)]]}, scene);
+            faceMesh.color = new BABYLON.Color3(0, 1, 1);
+            faceMesh.material = new BABYLON.StandardMaterial("neonMaterial", scene);
+            faceMesh.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
+            faceMesh.parent = camera;
+            scene.faceMesh = faceMesh;
+    
+            return scene;
+        };
+    
+        var scene = createScene();
+        engine.runRenderLoop(function() {
+            scene.render();
+        });
+    
+        window.addEventListener("resize", function() {
+            engine.resize();
+        });
+    
+        function toggleVisibility() {
+            const content = document.querySelector('.title-content');
+            const smallLogo = document.getElementById("smallLogo");
+    
+            if (content) {
+                content.classList.add('hidden');
+            }
+    
+            if (smallLogo) {
+                smallLogo.classList.add('visible');
+                smallLogo.classList.remove('hidden');
+            }
+        }
+    
+        document.addEventListener("DOMContentLoaded", toggleVisibility);
+    
+        let lastInputTime = Date.now();
+        let inputCounter = 0;
+        let inputSpeed = 0;
+        let resetColorTimeout;
+    
+        function calculateInputSpeed() {
+            const currentTime = Date.now();
+            const timeDifference = currentTime - lastInputTime;
+            inputSpeed = timeDifference ? 1000 / timeDifference : 0;
+            lastInputTime = currentTime;
+        }
+    
+        function getIntensity(speed) {
+            return Math.min(speed / 10, 1);
+        }
+    
+        function animateColor(scene, targetColor) {
+            const animation = new BABYLON.Animation("colorAnimation", "clearColor", 60, BABYLON.Animation.ANIMATIONTYPE_COLOR4, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+    
+            const keys = [];
+            keys.push({ frame: 0, value: scene.clearColor.clone() });
+            keys.push({ frame: 100, value: targetColor });
+    
+            animation.setKeys(keys);
+            scene.beginDirectAnimation(scene, [animation], 0, 100, false);
+        }
+    
+        function setInteractionColor(scene, intensity, colorType = "blue") {
+            let targetColor;
+            let lineColor;
+    
+            switch (colorType) {
+                case "green":
+                    targetColor = new BABYLON.Color4(0.0, 0.5 * intensity, 0.0, 1);
+                    lineColor = new BABYLON.Color3(0.0, 1.0 * intensity, 0.0);
+                    break;
+                case "red":
+                    targetColor = new BABYLON.Color4(0.5 * intensity, 0.0, 0.0, 1);
+                    lineColor = new BABYLON.Color3(1.0 * intensity, 0.0, 0.0);
+                    break;
+                case "yellow":
+                    targetColor = new BABYLON.Color4(0.5 * intensity, 0.5 * intensity, 0.0, 1);
+                    lineColor = new BABYLON.Color3(1.0 * intensity, 1.0 * intensity, 0.0);
+                    break;
+                default:
+                    targetColor = new BABYLON.Color4(0.0, 0.0, 0.5 * intensity, 1);
+                    lineColor = new BABYLON.Color3(0.0, 0.0, 1.0 * intensity);
+            }
+    
+            animateColor(scene, targetColor);
+            scene.meshes.forEach(mesh => {
+                if (mesh.material && mesh.material.name === "grid") {
+                    mesh.material.lineColor = lineColor;
+                }
+            });
+        }
+    
+        function onSuccessGreen() {
+            setInteractionColor(scene, 1, "green");
+            scheduleResetColor(scene);
+        }
+    
+        function onSuccessRed() {
+            setInteractionColor(scene, 1, "red");
+            scheduleResetColor(scene);
+        }
+    
+        function onSuccessYellow() {
+            setInteractionColor(scene, 1, "yellow");
+            scheduleResetColor(scene);
+        }
+    
+        function resetColor(scene) {
+            const targetColor = new BABYLON.Color4(0.0, 0.0, 0.0, 1);
+            animateColor(scene, targetColor);
+            scene.meshes.forEach(mesh => {
+                if (mesh.material && mesh.material.name === "grid") {
+                    mesh.material.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8);
+                }
+            });
+        }
+    
+        function scheduleResetColor(scene) {
+            if (resetColorTimeout) {
+                clearTimeout(resetColorTimeout);
+            }
+            resetColorTimeout = setTimeout(() => resetColor(scene), 1000);
+        }
+    
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                inputCounter = 0;
+                setInteractionColor(scene, 0.1);
+                scheduleResetColor(scene);
+            });
+    
+            input.addEventListener('input', () => {
+                calculateInputSpeed();
+                inputCounter++;
+                const intensity = getIntensity(inputSpeed * inputCounter);
+                setInteractionColor(scene, intensity);
+                scheduleResetColor(scene);
+            });
+    
+            input.addEventListener('blur', () => {
+                inputCounter = 0;
+                inputSpeed = 0;
+                scheduleResetColor(scene);
+            });
+        });
+    
+        document.addEventListener("DOMContentLoaded", function() {
+            var currentUrl = window.location.pathname;
+            document.querySelectorAll('.button').forEach(function(button) {
+                var href = button.getAttribute('href');
+                if (currentUrl === href) {
+                    button.classList.add('active');
+                }
+            });
+        });
+    
+        document.addEventListener("DOMContentLoaded", function() {
+            const smallLogo = document.getElementById("smallLogo");
+            const buttonContainer = document.querySelector(".button-container");
+            const buttons = buttonContainer.querySelectorAll(".button");
+    
+            smallLogo.classList.add("closed");
+    
+            function openBrackets() {
+                smallLogo.classList.remove("closed");
+                smallLogo.classList.add("open");
+            }
+    
+            function closeBrackets() {
+                smallLogo.classList.remove("open");
+                smallLogo.classList.add("closed");
+            }
+    
+            setTimeout(openBrackets, 500);
+    
+            buttons.forEach(button => {
+                button.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    closeBrackets();
+                    const href = this.getAttribute("href");
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 500);
+                });
+            });
+        });
+    
+        function updateFaceMesh(keypoints) {
+            var scene = engine.scenes[0];
+            var lines = [];
+    
+            var createLines = (points, closeLoop = true) => {
+                var babylonPoints = points.map(p => new BABYLON.Vector3((p[0] - canvas.width / 2) / 25, -(p[1] - canvas.height / 2) / 25, 0));
+                for (let i = 0; i < babylonPoints.length - 1; i++) {
+                    lines.push([babylonPoints[i], babylonPoints[i + 1]]);
+                }
+                if (closeLoop) {
+                    lines.push([babylonPoints[babylonPoints.length - 1], babylonPoints[0]]);
+                }
+            }
+    
+            if (Array.isArray(keypoints)) {
+                keypoints.forEach(pointsGroup => {
+                    if (pointsGroup.upper_nose) createLines(pointsGroup.upper_nose, false);
+                    if (pointsGroup.right_eyebrow) createLines(pointsGroup.right_eyebrow, false);
+                    if (pointsGroup.left_eyebrow) createLines(pointsGroup.left_eyebrow, false);
+                    if (pointsGroup.right_eye) createLines(pointsGroup.right_eye, true);
+                    if (pointsGroup.left_eye) createLines(pointsGroup.left_eye, true);
+                    if (pointsGroup.mouth) createLines(pointsGroup.mouth, true);
+                    if (pointsGroup.jaw) createLines(pointsGroup.jaw, false);
+                    if (pointsGroup.cheeks) createLines(pointsGroup.cheeks, false);
+                    if (pointsGroup.chin) createLines(pointsGroup.chin, false);
+                });
+    
+                if (scene.faceMesh) {
+                    scene.faceMesh.dispose();
+                }
+                console.log('Creating new faceMesh with lines:', lines); // Отладочная информация
+                scene.faceMesh = BABYLON.MeshBuilder.CreateLineSystem("faceLines", {lines: lines, updatable: true}, scene);
+                scene.faceMesh.color = new BABYLON.Color3(0, 1, 1);
+                scene.faceMesh.material = new BABYLON.StandardMaterial("neonMaterial", scene);
+                scene.faceMesh.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
+            }
+        }
+    
+        navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 400 }, height: { ideal: 300 } } }).then(stream => {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+    
+            const socket = new WebSocket('ws://localhost:9991/ws/video/');
+    
+            socket.onopen = () => {
+                console.log('WebSocket connection established');
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    startStreaming();
+                }
+            };
+    
+            socket.onmessage = event => {
+                try {
+                    const keypoints = JSON.parse(event.data);
+                    if (Array.isArray(keypoints)) {
+                        updateFaceMesh(keypoints);
+                    } else {
+                        console.error('Unexpected keypoints structure:', keypoints);
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            };
+    
+            socket.onerror = error => {
+                console.error('WebSocket error:', error);
+            };
+    
+            socket.onclose = () => {
+                console.log('WebSocket connection closed');
+            };
+    
+            const frameCanvas = document.createElement('canvas');
+            frameCanvas.width = 200; // Размер ожидаемый сервером
+            frameCanvas.height = 150; // Размер ожидаемый сервером
+            const context = frameCanvas.getContext('2d', { willReadFrequently: true });
+    
+            const sendFrame = () => {
+                if (video.paused || video.ended || socket.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+    
+                context.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+                const frame = context.getImageData(0, 0, frameCanvas.width, frameCanvas.height).data;
+                socket.send(frame.buffer);
+    
+                requestAnimationFrame(sendFrame);
+            };
+    
+            const startStreaming = () => {
+                console.log('Starting to stream video frames');
+                sendFrame();
+            };
+    
+            video.addEventListener('loadedmetadata', () => {
+                frameCanvas.width = 200; // Устанавливаем размер canvas
+                frameCanvas.height = 150; // Устанавливаем размер canvas
+    
+                video.addEventListener('play', () => {
+                    startStreaming();
+                });
+            });
+        });
+    </script>
+    
+    
+    {% block js %}
+
+    {% endblock %}
+    {% comment %} {% include "includes/cursorjs.html" %} {% endcomment %}
+</body>
+</html>
