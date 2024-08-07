@@ -236,6 +236,7 @@
                 <i class="fas fa-times delete-btn"></i>
             `;
             variableItem.querySelector('.delete-btn').onclick = () => {
+                
                 globalVariablesContainer.removeChild(variableItem);
                 variables = variables.filter(v => v.id !== variable.id);
             };
@@ -265,6 +266,7 @@
                 <i class="fas fa-times delete-btn"></i>
             `;
             variableItem.querySelector('.delete-btn').onclick = () => {
+                
                 commandSetContainer.removeChild(variableItem);
                 commandSets = commandSets.map(cs => {
                     if (cs.id === commandSetId) {
@@ -286,6 +288,81 @@
             commandSetVariableModal.classList.remove('active');
             addDragAndDropListeners(variableItem);
         }
+
+        function addCommandSetToScenario(commandSet) {
+            const commandSetContainer = document.createElement('div');
+            commandSetContainer.className = 'commandset-container';
+            commandSetContainer.setAttribute('data-id', commandSet.id);
+        
+            const commandSetItem = document.createElement('div');
+            commandSetItem.className = 'commandset-item';
+            commandSetItem.setAttribute('draggable', true);
+            commandSetItem.setAttribute('data-id', commandSet.id);
+            commandSetItem.innerHTML = `
+                <i class="fas fa-bars move-handle"></i>
+                <span class="commandset-text">${commandSet.name}</span>
+                <i class="fas fa-times delete-btn"></i>
+            `;
+            commandSetItem.querySelector('.delete-btn').onclick = () => {
+                
+                commandSetsContainer.removeChild(commandSetContainer);
+                commandSets = commandSets.filter(c => c.id !== commandSet.id);
+            };
+        
+            const variablesContainer = document.createElement('div');
+            variablesContainer.className = 'variables-container';
+            if (commandSet.variables) {
+                commandSet.variables.forEach(variable => {
+                    const variableItem = document.createElement('div');
+                    variableItem.classList.add('variable-item', 'commandset-variable-item');
+                    variableItem.setAttribute('draggable', true);
+                    variableItem.setAttribute('data-id', variable.id);
+                    variableItem.innerHTML = `
+                        <i class="fas fa-bars move-handle"></i>
+                        <span class="variable-text">${variable.key}=${variable.value}</span>
+                        <i class="fas fa-times delete-btn"></i>
+                    `;
+                    variableItem.querySelector('.delete-btn').onclick = () => {
+                        
+                        variablesContainer.removeChild(variableItem);
+                        commandSet.variables = commandSet.variables.filter(v => v.id !== variable.id);
+                    };
+                    variablesContainer.appendChild(variableItem);
+                    addDragAndDropListeners(variableItem);
+                });
+            }
+        
+            addVariableButton = document.createElement('div');
+            addVariableButton.className = 'variable-cell add-button';
+            addVariableButton.setAttribute('id', `add-variable-button-${commandSet.id}`);
+            addVariableButton.setAttribute('onclick', `openVariableModalForCommandSet(${commandSet.id})`);
+            addVariableButton.innerHTML = '<i class="fas fa-plus text-3xl text-gray-400"></i>';
+            variablesContainer.appendChild(addVariableButton);
+        
+            commandSetContainer.appendChild(commandSetItem);
+            commandSetContainer.appendChild(variablesContainer);
+        
+            commandSetsContainer = document.querySelector('.commandsets-container');
+            const addCommandSetButton = document.getElementById('add-commandset-button');
+            commandSetsContainer.insertBefore(commandSetContainer, addCommandSetButton);  // Вставляем перед кнопкой добавления
+            addDragAndDropListeners(commandSetItem);
+            commandSetModal.classList.remove('active');
+        }
+
+        window.openVariableModal = function() {
+            commandSetVariableModal.classList.add('active');
+        };
+    
+        window.openCommandSetModal = function() {
+            commandSetModal.classList.add('active');
+        };
+    
+        
+        window.openVariableModalForCommandSet = function(commandSetId) {
+            commandSetVariableModal.classList.add('active');
+            commandSetVariableModal.setAttribute('data-command-set-id', commandSetId);
+        };
+        
     
         function populateVariables(variables) {
             globalVariablesContainer.innerHTML = '';
@@ -351,12 +428,7 @@
                         variableItem.querySelector('.delete-btn').onclick = () => {
                             variablesContainer.removeChild(variableItem);
                             commandSet.variables = commandSet.variables.filter(v => v.id !== variable.id);
-                            fetch(`/api/commandset-variables/${commandSet.id}/${variable.id}/`, {
-                                method: 'DELETE',
-                                headers: {
-                                    'X-CSRFToken': getCookie('csrftoken')
-                                }
-                            });
+
                         };
                         variablesContainer.appendChild(variableItem);
                         addDragAndDropListeners(variableItem);
