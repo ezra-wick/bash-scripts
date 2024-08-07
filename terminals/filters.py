@@ -1,5 +1,5 @@
 import django_filters
-from .models import Terminal, Command, CommandSet, Space, Folder, Task, EnvironmentVariable, Scenario, ScenarioCommandSetOrder
+from .models import Terminal, Command, CommandSet, Space, Folder, Task, EnvironmentVariable, Scenario, ScenarioCommandSetOrder, CommandSetVariable
 from bashpanel.logger_init import logger
 
 class TerminalFilter(django_filters.FilterSet):
@@ -58,8 +58,6 @@ class EnvironmentVariableFilter(django_filters.FilterSet):
         model = EnvironmentVariable
         fields = ['key__icontains', 'value__icontains']
 
-
-
 class ScenarioFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
     # status = django_filters.ChoiceFilter(field_name='status', choices=Scenario.STATUS_CHOICES)
@@ -77,3 +75,12 @@ class ScenarioCommandSetOrderFilter(django_filters.FilterSet):
     class Meta:
         model = ScenarioCommandSetOrder
         fields = ['scenario__name', 'command_set__name', 'created']
+
+class CommandSetVariableFilter(django_filters.FilterSet):
+    scenario = django_filters.CharFilter(field_name='scenario__name', lookup_expr='icontains')
+    command_set = django_filters.CharFilter(field_name='command_set__name', lookup_expr='icontains')
+    environment_variable = django_filters.CharFilter(field_name='environment_variable__key', lookup_expr='icontains')
+
+    class Meta:
+        model = CommandSetVariable
+        fields = ['scenario', 'command_set', 'environment_variable']

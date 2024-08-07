@@ -1,5 +1,5 @@
 <style>
-    .command-cell {
+    .command-cell, .variable-cell, .commandset-cell {
         border: 2px dashed #4a5568;
         display: flex;
         align-items: center;
@@ -8,12 +8,13 @@
         min-width: 200px;
         height: 50px;
         flex-grow: 1;
+        margin-bottom: 10px;
     }
-    .command-cell.add-button {
+    .command-cell.add-button, .variable-cell.add-button, .commandset-cell.add-button {
         border-style: dashed;
         width: 200px;
     }
-    .command-item {
+    .command-item, .variable-item, .commandset-item {
         padding: 8px;
         background-color: #2d3748;
         color: #cbd5e0;
@@ -26,26 +27,38 @@
         min-width: 200px;
         height: 50px;
     }
-    .command-item:hover {
+    .command-item:hover, .variable-item:hover, .commandset-item:hover {
         background-color: #4a5568;
     }
-    .command-item .move-handle {
+    .command-item .move-handle, .variable-item .move-handle, .commandset-item .move-handle {
         cursor: grab;
     }
-    .command-item .command-text {
+    .command-item .command-text, .variable-item .variable-text, .commandset-item .commandset-text {
         flex-grow: 1;
         margin-left: 10px;
         word-break: break-word;
     }
-    .command-item .delete-btn {
+    .command-item .delete-btn, .variable-item .delete-btn, .commandset-item .delete-btn {
         margin-left: 10px;
         cursor: pointer;
         color: #e53e3e;
     }
-    .commands-container {
+    .commands-container, .variables-container, .commandsets-container {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .commandset-container {
+        padding: 10px;
+        border: 2px solid #4a5568;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .commandset-container h3 {
+        color: #cbd5e0;
+        margin-bottom: 8px;
     }
     .create-button {
         background-color: #38a169;
@@ -65,37 +78,23 @@
     .create-button i {
         margin-right: 5px;
     }
-    .card {
-        background: rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        padding: 20px;
-        border-radius: 15px;
-        margin-bottom: 20px;
-        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .card:hover {
-        border-color: #ff00ff;
-        box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
-    }
-    .scroll-container {
-        max-height: 500px;
-        overflow-y: auto;
-    }
-    .search-bar {
-        background: rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 10px;
+    .variable-list, .commandset-list {
+        background: rgba(0, 0, 0, 0.5);
         padding: 10px;
-        width: 100%;
-        color: white;
-        margin-bottom: 20px;
+        border-radius: 10px;
+        margin-top: 10px;
+        display: none;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.5s, transform 0.5s;
     }
-</style>
 
-<style>
+    .show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
     .card {
         background: rgba(255, 255, 255, 0.1);
         border: 2px solid rgba(255, 255, 255, 0.3);
@@ -103,30 +102,54 @@
         border-radius: 15px;
         margin-bottom: 20px;
         box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         color: white;
         transition: filter 0.3s ease;
-        width: 100%; /* Добавлено */
+        width: 100%;
     }
+
+    .card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
     .neon-border {
         border: 2px solid rgba(255, 255, 255, 0.2);
         border-radius: 10px;
         box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
         transition: box-shadow 0.3s ease, transform 0.3s ease;
     }
+
     .neon-border:hover {
         box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
-        transform: none; /* Убираем scale */
+        transform: none;
     }
-    .card-container {
-        display: flex;
-        flex-direction: column; /* Изменено */
-        gap: 20px;
+
+    .edit-icon, .delete-icon {
+        cursor: pointer;
+        color: white;
+        transition: color 0.3s ease;
     }
-    .card-container:hover .card:not(:hover) {
-        filter: blur(2px);
+
+    .edit-icon:hover, .delete-icon:hover {
+        color: #ff00ff;
+    }
+
+    .toggle-btn {
+        cursor: pointer;
+        color: #ff00ff;
+        font-size: 1.2em;
+        transition: color 0.3s ease;
+    }
+
+    .toggle-btn:hover {
+        color: white;
     }
     .search-bar {
         background: rgba(255, 255, 255, 0.1);
@@ -137,18 +160,4 @@
         color: white;
         margin-bottom: 20px;
     }
-    .scroll-container {
-        max-height: 500px;
-        overflow-y: auto;
-    }
-    .edit-icon, .delete-icon {
-        cursor: pointer;
-        color: white;
-        transition: color 0.3s ease;
-    }
-    .edit-icon:hover, .delete-icon:hover {
-        color: #ff00ff;
-    }
-    
 </style>
-

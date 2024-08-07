@@ -67,6 +67,8 @@ import numpy as np
 from django.conf import settings
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+import base64
+
 
 # Определяем путь к файлу shape_predictor_81_face_landmarks.dat
 landmark_path = os.path.join(settings.BASE_DIR, "models", "shape_predictor_81_face_landmarks.dat")
@@ -77,13 +79,14 @@ landmark_predictor = dlib.shape_predictor(landmark_path)
 class VideoConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
+        logger.warning("WebSocket connection accepted.")
 
     async def disconnect(self, close_code):
-        pass
+        logger.warning(f"WebSocket connection closed with code: {close_code}")
 
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data:
-            frame = np.frombuffer(bytes_data, dtype=np.uint8).reshape((150, 200, 4))  # Увеличенный размер
+            frame = np.frombuffer(bytes_data, dtype=np.uint8).reshape((160, 240, 4))
             frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
 
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -93,7 +96,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
 
             for face in faces:
                 landmarks = landmark_predictor(gray, face)
-                points = [(landmarks.part(i).x, landmarks.part(i).y) for i in range(81)]
+                points = [(landmarks.part(i).x * 4, landmarks.part(i).y * 4) for i in range(81)]
 
                 keypoints.append({
                     "upper_nose": points[27:31],
@@ -103,8 +106,9 @@ class VideoConsumer(AsyncWebsocketConsumer):
                     "left_eye": points[42:48],
                     "mouth": points[48:68],
                     "jaw": points[0:17],
-                    "cheeks": points[31:36],  # Добавление скул и щек
-                    "chin": points[6:11]  # Добавление подбородка
+                    "cheeks": points[31:36],
+                    "chin": points[6:11],
+                    "oval": points[0:17]
                 })
-
+            # logger.warning(f"Sending keypoints data: {keypoints}")
             await self.send(text_data=json.dumps(keypoints))

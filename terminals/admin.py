@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Terminal, Command, Task, CommandSet, CommandSetOrder, Space, Folder
+from .models import Terminal, Command, Task, CommandSet, CommandSetOrder, Space, Folder, Scenario, ScenarioCommandSetOrder, CommandSetVariable, EnvironmentVariable
 
 @admin.register(Terminal)
 class TerminalAdmin(admin.ModelAdmin):
@@ -75,3 +75,46 @@ class FolderAdmin(admin.ModelAdmin):
             folder.save()
         self.message_user(request, "Выбранные папки установлены как главные.")
     set_as_main_folder.short_description = "Установить как главную папку"
+
+
+class ScenarioCommandSetOrderInline(admin.TabularInline):
+    model = ScenarioCommandSetOrder
+    extra = 1
+
+class CommandSetVariableInline(admin.TabularInline):
+    model = CommandSetVariable
+    extra = 1
+
+@admin.register(Scenario)
+class ScenarioAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created', 'updated')
+    inlines = [ScenarioCommandSetOrderInline, CommandSetVariableInline]
+    search_fields = ('name',)
+
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'global_environment_variables', 'output')
+        }),
+        ('Dates', {
+            'fields': ('created', 'updated')
+        }),
+    )
+    readonly_fields = ('created', 'updated')
+
+@admin.register(ScenarioCommandSetOrder)
+class ScenarioCommandSetOrderAdmin(admin.ModelAdmin):
+    list_display = ('scenario', 'command_set', 'order', 'created', 'updated')
+    search_fields = ('scenario__name', 'command_set__name')
+    list_filter = ('scenario', 'command_set')
+
+@admin.register(CommandSetVariable)
+class CommandSetVariableAdmin(admin.ModelAdmin):
+    list_display = ('scenario', 'command_set', 'environment_variable', 'created', 'updated')
+    search_fields = ('scenario__name', 'command_set__name', 'environment_variable__name')
+    list_filter = ('scenario', 'command_set', 'environment_variable')
+
+@admin.register(EnvironmentVariable)
+class EnvironmentVariableAdmin(admin.ModelAdmin):
+    list_display = ('key', 'value', 'created', 'updated')
+    search_fields = ('key', 'value')
+    list_filter = ('created', 'updated')

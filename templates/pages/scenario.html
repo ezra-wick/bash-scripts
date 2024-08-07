@@ -1,0 +1,694 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Сценарии{% endblock %}
+{% block content %}
+{% include 'pages/includes/commandset_styles.html' %}
+<div class="w-full py-8 z-10 mx-0">
+    <h1 class="text-2xl font-bold mb-4">Создать Сценарий</h1>
+    <div class="parallax">
+        <div class="parallax-layer scrollA">
+            <form id="scenarioForm">
+                <div class="mb-4">
+                    <input type="hidden" id="scenarioId" value="">
+                    <label class="block text-gray-700">Название:</label>
+                    <input type="text" id="scenarioName" class="search-bar" placeholder="Введите название сценария">
+                </div>
+                <div id="globalVariablesContainer" class="mb-4">
+                    <h2 class="text-xl mb-2 w-full text-white">Общие переменные</h2>
+                    <div class="variables-container">
+                        <!-- Существующие переменные -->
+                        <div class="variable-cell add-button" onclick="openGlobalVariableModal()">
+                            <i class="fas fa-plus text-3xl text-gray-400"></i>
+                        </div>
+                        
+                    </div>
+                </div>
+                <div id="commandSetsContainer" class="mb-4">
+                    <h2 class="text-xl mb-2 w-full text-white">Комбинации команд</h2>
+                    <div class="commandsets-container">
+                        <!-- Существующие commandsets -->
+                        <div id="add-commandset-button" class="commandset-cell add-button h-full" onclick="openCommandSetModal()">
+                            <i class="fas fa-plus text-3xl text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+                <div id="buttonsContainer" class="flex justify-end space-x-4 pb-3 hidden">
+                    <button type="button" id="resetFormButton" class="reset-button button text-white">
+                        <i class="fa fa-redo"></i>
+                    </button>
+                    <button type="submit" class="create-button button text-white bg-green-500">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="parallax-layer scrollB">
+            <h2 class="text-xl mb-4 text-white">Список Сценариев</h2>
+            <input type="text" id="searchScenarioInput" placeholder="Искать сценарии..." class="search-bar mb-4">
+            <div id="scenarioList" class="scroll-container card-container">
+                <!-- Сценарии будут динамически добавлены здесь -->
+            </div>
+        </div>
+    </div>
+</div>
+<div id="globalVariableModal" class="modal z-20">
+    <div class="modal-content">
+        <span id="cancelGlobalVariableButton" class="close-btn">&times;</span>
+        <h2 class="text-xl">Добавить Глобальную Переменную</h2>
+        <input type="text" id="searchGlobalVariableInput" placeholder="Искать переменные..." class="search-bar">
+        <div id="globalVariableResults" class="mb-4">
+        </div>
+        <button id="createGlobalVariableButton" class="button neon-border">
+            <i class="fas fa-plus neon-icon"></i>
+            Создать новую переменную
+        </button>
+    </div>
+</div>
+
+
+<div id="commandSetVariableModal" class="modal z-20">
+    <div class="modal-content">
+        <span id="cancelCommandSetVariableButton" class="close-btn">&times;</span>
+        <h2 class="text-xl">Добавить Переменную в Командсет</h2>
+        <input type="text" id="searchCommandSetVariableInput" placeholder="Искать переменные..." class="search-bar">
+        <div id="commandSetVariableResults" class="mb-4">
+        </div>
+    </div>
+</div>
+
+<div id="commandSetModal" class="modal z-20">
+    <div class="modal-content">
+        <span id="cancelCommandSetButton" class="close-btn">&times;</span>
+        <h2 class="text-xl">Добавить Комбинацию Команд</h2>
+        <input type="text" id="searchCommandSetInput" placeholder="Искать комбинации команд..." class="search-bar">
+        <div id="commandSetResults" class="mb-4">
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal" class="modal z-20">
+    <div class="modal-content">
+        <span id="closeDeleteModal" class="close-btn">&times;</span>
+        <h2 class="text-xl">Подтвердите удаление</h2>
+        <p>Вы уверены, что хотите удалить этот сценарий?</p>
+        <div class="button-row">
+            <button id="confirmDeleteButton" class="button red-border">
+                <i class="fas fa-trash"></i> Удалить
+            </button>
+            <button id="cancelDeleteButton" class="button gray-border">
+                <i class="fas fa-times"></i> Отменить
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let scenarioForm = document.getElementById('scenarioForm');
+        let scenarioName = document.getElementById('scenarioName');
+        let globalVariablesContainer = document.querySelector('.variables-container');
+        let commandSetsContainer = document.querySelector('.commandsets-container');
+        let globalVariableModal = document.getElementById('globalVariableModal');
+        let commandSetVariableModal = document.getElementById('commandSetVariableModal');
+        let searchGlobalVariableInput = document.getElementById('searchGlobalVariableInput');
+        let searchCommandSetVariableInput = document.getElementById('searchCommandSetVariableInput');
+        let globalVariableResults = document.getElementById('globalVariableResults');
+        let commandSetVariableResults = document.getElementById('commandSetVariableResults');
+        let createGlobalVariableButton = document.getElementById('createGlobalVariableButton');
+        let cancelGlobalVariableButton = document.getElementById('cancelGlobalVariableButton');
+        let cancelCommandSetVariableButton = document.getElementById('cancelCommandSetVariableButton');
+        let scenarioIdField = document.getElementById('scenarioId');
+        let resetFormButton = document.getElementById('resetFormButton');
+        let searchScenarioInput = document.getElementById('searchScenarioInput');
+        let scenarioList = document.getElementById('scenarioList');
+        let searchCommandSetInput = document.getElementById('searchCommandSetInput');
+        let variables = [];
+        let commandSets = [];
+        let editingScenarioId = null;
+    
+        searchCommandSetInput.addEventListener('input', () => {
+            const query = searchCommandSetInput.value;
+            fetch(`/api/commandsets/?search=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    commandSetResults.innerHTML = '';
+                    data.forEach(commandSet => {
+                        const commandSetElement = document.createElement('div');
+                        commandSetElement.className = 'commandset-result p-2 bg-gray-700 text-white rounded mb-2 cursor-pointer';
+                        commandSetElement.textContent = commandSet.name;
+                        commandSetElement.onclick = () => {
+                            addCommandSetToScenario(commandSet);
+                        };
+                        commandSetResults.appendChild(commandSetElement);
+                    });
+                });
+        });
+        
+        resetFormButton.addEventListener('click', () => {
+            scenarioForm.reset();
+            globalVariablesContainer.innerHTML = '<div class="variable-cell add-button" onclick="openGlobalVariableModal()"><i class="fas fa-plus text-3xl text-gray-400"></i></div>';
+            commandSetsContainer.innerHTML = '<div class="commandset-cell add-button" onclick="openCommandSetModal()"><i class="fas fa-plus text-3xl text-gray-400"></i></div>';
+            variables = [];
+            commandSets = [];
+            toggleButtonsVisibility();
+        });
+    
+        cancelGlobalVariableButton.addEventListener('click', () => {
+            globalVariableModal.classList.remove('active');
+        });
+    
+        cancelCommandSetVariableButton.addEventListener('click', () => {
+            commandSetVariableModal.classList.remove('active');
+        });
+    
+        window.openGlobalVariableModal = function() {
+            globalVariableModal.classList.add('active');
+        };
+    
+        window.openCommandSetVariableModal = function(commandSetId) {
+            commandSetVariableModal.classList.add('active');
+            commandSetVariableModal.setAttribute('data-command-set-id', commandSetId);
+        };
+    
+        searchGlobalVariableInput.addEventListener('input', () => {
+            const query = searchGlobalVariableInput.value;
+            fetch(`/api/environment-variables/?search=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    globalVariableResults.innerHTML = '';
+                    data.forEach(variable => {
+                        const variableElement = document.createElement('div');
+                        variableElement.className = 'variable-result p-2 bg-gray-700 text-white rounded mb-2 cursor-pointer';
+                        variableElement.textContent = `${variable.key}=${variable.value}`;
+                        variableElement.onclick = () => {
+                            addVariableToScenario(variable);
+                        };
+                        globalVariableResults.appendChild(variableElement);
+                    });
+                });
+        });
+    
+        searchCommandSetVariableInput.addEventListener('input', () => {
+            const query = searchCommandSetVariableInput.value;
+            fetch(`/api/environment-variables/?search=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    commandSetVariableResults.innerHTML = '';
+                    data.forEach(variable => {
+                        const variableElement = document.createElement('div');
+                        variableElement.className = 'variable-result p-2 bg-gray-700 text-white rounded mb-2 cursor-pointer';
+                        variableElement.textContent = `${variable.key}=${variable.value}`;
+                        variableElement.onclick = () => {
+                            const commandSetId = commandSetVariableModal.getAttribute('data-command-set-id');
+                            addVariableToCommandSet(commandSetId, variable);
+                        };
+                        commandSetVariableResults.appendChild(variableElement);
+                    });
+                });
+        });
+    
+        createGlobalVariableButton.addEventListener('click', () => {
+            const key = prompt('Введите ключ переменной:');
+            const value = prompt('Введите значение переменной:');
+            if (key && value) {
+                fetch('/api/environment-variables/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ key, value })
+                })
+                .then(response => response.json())
+                .then(variable => {
+                    addVariableToScenario(variable);
+                });
+            }
+        });
+    
+        function addVariableToScenario(variable) {
+            const variableItem = document.createElement('div');
+            variableItem.classList.add('variable-item', 'global-variable-item');
+            variableItem.setAttribute('draggable', true);
+            variableItem.setAttribute('data-id', variable.id);
+            variableItem.innerHTML = `
+                <i class="fas fa-bars move-handle"></i>
+                <span class="variable-text">${variable.key}=${variable.value}</span>
+                <i class="fas fa-times delete-btn"></i>
+            `;
+            variableItem.querySelector('.delete-btn').onclick = () => {
+                globalVariablesContainer.removeChild(variableItem);
+                variables = variables.filter(v => v.id !== variable.id);
+            };
+            const addButton = globalVariablesContainer.querySelector('.add-button');
+            globalVariablesContainer.insertBefore(variableItem, addButton);
+            variables.push({ variable: variable.id });
+            globalVariableModal.classList.remove('active');
+            addDragAndDropListeners(variableItem);
+        }
+    
+        function addVariableToCommandSet(commandSetId, variable) {
+            const commandSetContainer = document.querySelector(`.commandset-container[data-id="${commandSetId}"] .variables-container`);
+            const existingVariable = Array.from(commandSetContainer.querySelectorAll('.commandset-variable-item')).find(item => item.getAttribute('data-id') === variable.id);
+    
+            if (existingVariable) {
+                alert('This variable is already added to the command set.');
+                return;
+            }
+    
+            const variableItem = document.createElement('div');
+            variableItem.classList.add('variable-item', 'commandset-variable-item');
+            variableItem.setAttribute('draggable', true);
+            variableItem.setAttribute('data-id', variable.id);
+            variableItem.innerHTML = `
+                <i class="fas fa-bars move-handle"></i>
+                <span class="variable-text">${variable.key}=${variable.value}</span>
+                <i class="fas fa-times delete-btn"></i>
+            `;
+            variableItem.querySelector('.delete-btn').onclick = () => {
+                commandSetContainer.removeChild(variableItem);
+                commandSets = commandSets.map(cs => {
+                    if (cs.id === commandSetId) {
+                        cs.variables = cs.variables.filter(v => v.id !== variable.id);
+                    }
+                    return cs;
+                });
+            };
+            const addButton = commandSetContainer.querySelector('.add-button');
+            commandSetContainer.insertBefore(variableItem, addButton);
+    
+            commandSets = commandSets.map(cs => {
+                if (cs.id === commandSetId) {
+                    cs.variables.push({ environment_variable: variable.id });
+                }
+                return cs;
+            });
+    
+            commandSetVariableModal.classList.remove('active');
+            addDragAndDropListeners(variableItem);
+        }
+    
+        function populateVariables(variables) {
+            globalVariablesContainer.innerHTML = '';
+            variables.forEach(variable => {
+                const variableItem = document.createElement('div');
+                variableItem.classList.add('variable-item', 'global-variable-item');
+                variableItem.setAttribute('draggable', true);
+                variableItem.setAttribute('data-id', variable.id);
+                variableItem.innerHTML = `
+                    <i class="fas fa-bars move-handle"></i>
+                    <span class="variable-text">${variable.key}=${variable.value}</span>
+                    <i class="fas fa-times delete-btn"></i>
+                `;
+                variableItem.querySelector('.delete-btn').onclick = () => {
+                    globalVariablesContainer.removeChild(variableItem);
+                    variables = variables.filter(v => v.id !== variable.id);
+                };
+                globalVariablesContainer.appendChild(variableItem);
+                addDragAndDropListeners(variableItem);
+            });
+            const addButton = document.createElement('div');
+            addButton.className = 'variable-cell add-button h-full';
+            addButton.setAttribute('onclick', 'openGlobalVariableModal()');
+            addButton.innerHTML = '<i class="fas fa-plus text-3xl text-gray-400"></i>';
+            globalVariablesContainer.appendChild(addButton);
+            toggleButtonsVisibility();
+        }
+    
+        function populateCommandSets(commandSets) {
+            commandSetsContainer.innerHTML = '';
+            commandSets.forEach(commandSet => {
+                const commandSetContainer = document.createElement('div');
+                commandSetContainer.className = 'commandset-container';
+                commandSetContainer.setAttribute('data-id', commandSet.id || '');
+    
+                const commandSetItem = document.createElement('div');
+                commandSetItem.className = 'commandset-item';
+                commandSetItem.setAttribute('draggable', true);
+                commandSetItem.setAttribute('data-id', commandSet.id);
+                commandSetItem.innerHTML = `
+                    <i class="fas fa-bars move-handle"></i>
+                    <span class="commandset-text">${commandSet.name}</span>
+                    <i class="fas fa-times delete-btn"></i>
+                `;
+                commandSetItem.querySelector('.delete-btn').onclick = () => {
+                    commandSetsContainer.removeChild(commandSetContainer);
+                    commandSets = commandSets.filter(c => c.id !== commandSet.id);
+                };
+    
+                const variablesContainer = document.createElement('div');
+                variablesContainer.className = 'variables-container';
+                if (commandSet.variables) {
+                    commandSet.variables.forEach(variable => {
+                        const variableItem = document.createElement('div');
+                        variableItem.classList.add('variable-item', 'commandset-variable-item');
+                        variableItem.setAttribute('draggable', true);
+                        variableItem.setAttribute('data-id', variable.id);
+                        variableItem.innerHTML = `
+                            <i class="fas fa-bars move-handle"></i>
+                            <span class="variable-text">${variable.key}=${variable.value}</span>
+                            <i class="fas fa-times delete-btn"></i>
+                        `;
+                        variableItem.querySelector('.delete-btn').onclick = () => {
+                            variablesContainer.removeChild(variableItem);
+                            commandSet.variables = commandSet.variables.filter(v => v.id !== variable.id);
+                            fetch(`/api/commandset-variables/${commandSet.id}/${variable.id}/`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                }
+                            });
+                        };
+                        variablesContainer.appendChild(variableItem);
+                        addDragAndDropListeners(variableItem);
+                    });
+                }
+    
+                const addVariableButton = document.createElement('div');
+                addVariableButton.className = 'variable-cell add-button h-full';
+                addVariableButton.setAttribute('onclick', `openCommandSetVariableModal(${commandSet.id})`);
+                addVariableButton.innerHTML = '<i class="fas fa-plus text-3xl text-gray-400"></i>';
+                variablesContainer.appendChild(addVariableButton);
+    
+                commandSetContainer.appendChild(commandSetItem);
+                commandSetContainer.appendChild(variablesContainer);
+                commandSetsContainer.appendChild(commandSetContainer);
+                addDragAndDropListeners(commandSetItem);
+            });
+    
+            const addButton = document.createElement('div');
+            addButton.className = 'commandset-cell add-button h-full';
+            addButton.setAttribute('onclick', 'openCommandSetModal()');
+            addButton.innerHTML = '<i class="fas fa-plus text-3xl text-gray-400"></i>';
+            commandSetsContainer.appendChild(addButton);
+            toggleButtonsVisibility();
+        }
+    
+        const deleteModal = document.getElementById('deleteModal');
+        const closeDeleteModal = document.getElementById('closeDeleteModal');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+    
+        let scenarioIdToDelete = null;
+        closeDeleteModal.onclick = () => {
+            deleteModal.classList.remove('active');
+            scenarioIdToDelete = null;
+        };
+    
+        cancelDeleteButton.onclick = () => {
+            deleteModal.classList.remove('active');
+            scenarioIdToDelete = null;
+        };
+    
+        window.deleteScenario = function(id) {
+            scenarioIdToDelete = id;
+            deleteModal.classList.add('active');
+        }
+    
+        confirmDeleteButton.onclick = () => {
+            if (scenarioIdToDelete) {
+                fetch(`/api/scenarios/${scenarioIdToDelete}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        updateScenarioList();
+                        onSuccessGreen();
+                    } else {
+                        console.error('Ошибка при удалении сценария');
+                        onSuccessRed();
+                    }
+                    deleteModal.classList.remove('active');
+                    scenarioIdToDelete = null;
+                });
+            }
+        };
+    
+        function addDragAndDropListeners(element) {
+            element.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', e.target.innerHTML);
+                e.dataTransfer.dropEffect = 'move';
+                e.target.classList.add('dragging');
+            });
+    
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+    
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                let draggingItem = document.querySelector('.dragging');
+                if (draggingItem) {
+                    draggingItem.classList.remove('dragging');
+                    e.target.closest('.variable-item').before(draggingItem);
+                }
+            });
+    
+            element.addEventListener('dragend', () => {
+                let draggingItem = document.querySelector('.dragging');
+                if (draggingItem) {
+                    draggingItem.classList.remove('dragging');
+                }
+            });
+        }
+    
+        window.openCommandSetModal = function() {
+            commandSetModal.classList.add('active');
+        };
+    
+        function collectCommandSetData() {
+            const commandSetElements = document.querySelectorAll('.commandset-container');
+            return Array.from(commandSetElements).map((commandSetElement, index) => {
+                const id = commandSetElement.getAttribute('data-id');
+                const name = commandSetElement.querySelector('.commandset-text').textContent;
+                const variables = Array.from(commandSetElement.querySelectorAll('.commandset-variable-item')).map(variableElement => {
+                    return {
+                        environment_variable: parseInt(variableElement.getAttribute('data-id'))
+                    };
+                });
+                return {
+                    id: id ? parseInt(id) : null,
+                    name,
+                    variables,
+                    order: index + 1
+                };
+            });
+        }
+    
+        scenarioForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const scenarioId = scenarioIdField.value;
+            
+            const variableElements = document.querySelectorAll('.global-variable-item');
+            const variables = Array.from(variableElements).map(variableElement => {
+                const id = variableElement.getAttribute('data-id');
+                return id ? { id } : null;
+            }).filter(v => v !== null);
+    
+            const commandSets = collectCommandSetData();
+    
+            const scenario = {
+                name: scenarioName.value,
+                global_environment_variables: variables.map(v => v.id),
+                command_sets: commandSets
+            };
+    
+            const method = scenarioId ? 'PATCH' : 'POST';
+            const url = scenarioId ? `/api/scenarios/${scenarioId}/` : `/api/scenarios/`;
+    
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(scenario)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => { throw new Error(JSON.stringify(errorData)); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                updateScenarioList();
+                scenarioIdField.value = '';
+                scenarioForm.reset();
+                populateVariables([]);
+                populateCommandSets([]);
+                onSuccessGreen();
+                handleScrollToggle();
+            })
+            .catch(error => {
+                console.error("Error submitting scenario:", error);
+            });
+        });
+    
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    
+        async function updateScenarioList(query = '') {
+            try {
+                const response = await fetch(`/api/scenarios/?search=${query}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                const scenarioList = document.getElementById('scenarioList');
+                scenarioList.innerHTML = '';
+    
+                data.forEach(scenario => {
+                    const variablesHtml = scenario.global_environment_variables.map(v => `
+                        <div class="variable-item comandset-variable-item flex items-center">
+                            <i class="fa fa-key text-blue-500"></i>
+                            <span class="ml-2">${v.key}=${v.value}</span>
+                        </div>`).join('');
+    
+                    const commandSetsHtml = scenario.command_sets.map(cs => {
+                        const commandSetVariablesHtml = cs.variables.map(v => `
+                            <div class="variable-item global-variable-item mb-2 flex items-center">
+                                <i class="fas fa-cogs text-yellow-500"></i>
+                                <span class="ml-2">${v.environment_variable.key}=${v.environment_variable.value}</span>
+                            </div>`).join('');
+                        return `
+                            <div class="commandset-item neon-border mb-2 p-2">
+                                <div class="flex items-center">
+                                    <i class="fas fa-random text-green-500"></i>
+                                    <strong class="ml-2">${cs.name}</strong> (${cs.variables.length} переменных)
+                                </div>
+                                <p class="toggle-btn mt-2 cursor-pointer text-blue-600" onclick="toggleCommandSetVariables('variables-${cs.id}')">
+                                    <i class="fas fa-chevron-down"></i> Переменные (${cs.variables.length})
+                                </p>
+                            </div>
+                            <div id="variables-${cs.id}" class="variable-list nested-list w-full hidden">${commandSetVariablesHtml}</div>
+                        `;
+                    }).join('');
+    
+                    const scenarioHtml = `
+                        <div class="card neon-border mb-4 p-4">
+                            <div class="card-content">
+                                <h3 class="text-xl font-bold"><i class="fas fa-scroll text-green-500"></i> ${scenario.name}</h3>
+                                <p class="toggle-btn mt-2 cursor-pointer text-blue-600" onclick="toggleScenarioVariables('variables-${scenario.id}')">
+                                    <i class="fas fa-chevron-down"></i> Переменные (${scenario.global_environment_variables.length})
+                                </p>
+                                <div id="variables-${scenario.id}" class="variable-list w-full hidden">${variablesHtml}</div>
+                                ${commandSetsHtml ? `
+                                <p class="toggle-btn mt-2 cursor-pointer text-blue-600" onclick="toggleScenarioCommandSets('commandsets-${scenario.id}')">
+                                    <i class="fas fa-chevron-down"></i> Комбинации команд (${scenario.command_sets.length})
+                                </p>
+                                <div id="commandsets-${scenario.id}" class="commandset-list show">${commandSetsHtml}</div>
+                                ` : ''}
+                            </div>
+                            <div class="card-actions flex justify-end mt-4">
+                                <i class="fas fa-edit edit-icon text-yellow-500 cursor-pointer mr-4" onclick="editScenario(${scenario.id})"></i>
+                                <i class="fas fa-trash delete-icon text-red-500 cursor-pointer" onclick="deleteScenario(${scenario.id})"></i>
+                            </div>
+                        </div>
+                        <div id="variables-container-${scenario.id}" class="variable-list hidden"></div>
+                        <div id="commandsets-container-${scenario.id}" class="commandset-list hidden"></div>
+                    `;
+                    scenarioList.insertAdjacentHTML('beforeend', scenarioHtml);
+                });
+            } catch (error) {
+                console.error('Error updating scenario list:', error);
+            }
+        }
+    
+        window.toggleScenarioVariables = function(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.toggle('hidden');
+            element.classList.toggle('show');
+        }
+    
+        window.toggleScenarioCommandSets = function(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.toggle('hidden');
+            element.classList.toggle('show');
+        }
+    
+        window.toggleCommandSetVariables = function(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.toggle('hidden');
+            element.classList.toggle('show');
+        }
+    
+        window.editScenario = function(scenarioId) {
+            fetch(`/api/scenarios/${scenarioId}/`)
+                .then(response => response.json())
+                .then(scenario => {
+                    scenarioIdField.value = scenario.id;
+                    scenarioName.value = scenario.name;
+    
+                    variables = scenario.global_environment_variables.map(v => ({
+                        id: v.id,
+                        key: v.key,
+                        value: v.value
+                    }));
+    
+                    commandSets = scenario.command_sets.map(cs => {
+                        const mappedVariables = cs.variables ? cs.variables.map(v => ({
+                            id: v.environment_variable ? v.environment_variable.id : v.id,
+                            key: v.environment_variable ? v.environment_variable.key : v.key,
+                            value: v.environment_variable ? v.environment_variable.value : v.value
+                        })) : [];
+                        return {
+                            id: cs.id,
+                            name: cs.name,
+                            variables: mappedVariables
+                        };
+                    });
+    
+                    populateVariables(variables);
+                    populateCommandSets(commandSets);
+                    handleScrollToggle();
+                })
+                .catch(error => {
+                    console.error("Error fetching scenario:", error);
+                });
+        };
+    
+        searchScenarioInput.addEventListener('input', () => {
+            const query = searchScenarioInput.value;
+            updateScenarioList(query);
+        });
+    
+        updateScenarioList();
+    
+        function toggleButtonsVisibility() {
+            const input = document.getElementById('scenarioName').value.trim();
+            const buttonsContainer = document.getElementById('buttonsContainer');
+            if (input) {
+                buttonsContainer.classList.remove('hidden');
+            } else {
+                buttonsContainer.classList.add('hidden');
+            }
+        }
+    
+        document.getElementById('scenarioName').addEventListener('input', toggleButtonsVisibility);
+    
+    });
+
+    
+
+
+
+
+    </script>
+    
+    
+{% endblock %}

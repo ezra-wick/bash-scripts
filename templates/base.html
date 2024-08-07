@@ -7,27 +7,28 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        /* 🖱️ Стили для неонового скролла */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
+        /* 🖱️ Стили для более прозрачного и узкого скролла */
+::-webkit-scrollbar {
+    width: 6px; /* Уже скроллбар */
+    height: 6px; /* Уже скроллбар */
+}
 
-        ::-webkit-scrollbar-thumb {
-            background-color: #ff00ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff;
-        }
+::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 0, 255, 0.6); /* Полупрозрачный цвет */
+    border-radius: 12px; /* Более округленный */
+    box-shadow: 0 0 5px rgba(255, 0, 255, 0.6), 0 0 10px rgba(255, 0, 255, 0.6), 0 0 15px rgba(255, 0, 255, 0.6);
+}
 
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05); /* Более прозрачный трек */
+    border-radius: 12px; /* Более округленный */
+}
 
-        body {
-            scrollbar-width: thin;
-            scrollbar-color: #ff00ff rgba(255, 255, 255, 0.1);
-        }
+body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 0, 255, 0.6) rgba(255, 255, 255, 0.05); /* Полупрозрачные цвета для Firefox */
+}
+
 
         body, html {
             margin: 0;
@@ -44,20 +45,37 @@
         }
         canvas {
             display: block;
-            width: 100%;
-            height: 100%;
+ 
             position: absolute;
             top: 0;
             left: 0;
         }
+        
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+        }
 
+        @keyframes slideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(100%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .button-container {
             position: fixed;
             bottom: 20px;
             display: flex;
             justify-content: center;
             gap: 20px;
+            animation: slideUp 1.1s ease-out;
         }
+        
         
         .button {
             display: flex;
@@ -70,7 +88,7 @@
             text-align: center;
             cursor: pointer;
             padding: 10px 20px;
-            transition: all 0.3s ease;
+            transition: all 0.9s ease;
             overflow: hidden;
         }
         
@@ -83,7 +101,7 @@
             width: 0;
             opacity: 0;
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: all 1.1s ease;
         }
         
         .button:hover span {
@@ -170,6 +188,7 @@
             width: 120px;
             position: relative;
             height: 100px;
+            z-index: 10;
             opacity: 0; /* Начальное состояние невидимое */
             transform: translateY(-20px); /* Начальное состояние: смещение вверх */
             transition: opacity 0.7s ease, transform 0.9s ease; /* Плавное появление и перемещение */
@@ -285,7 +304,10 @@
             transition: opacity 0.3s ease, transform 0.5s ease-in-out;
             transform: translateY(-20px); /* Начальное состояние: смещение вверх */
             animation: fadeInMove 0.9s forwards;
+            max-height: 50%;
+            overflow-y: auto;
         }
+
         
         .content.hidden, .title-content.hidden {
             opacity: 0;
@@ -365,8 +387,71 @@
             opacity: 0;
           }
           
-          
-        
+          .blur-background {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            background: rgba(204, 77, 204, 0.1);
+            animation: moveBackground 10s linear infinite;
+        }
+
+        @keyframes moveBackground {
+            0% {
+                background-position: 0 0;
+            }
+            100% {
+                background-position: 1000px 1000px;
+            }
+        }
+        /* Начальные стили для контейнера и элементов */
+        .parallax {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Высота экрана */
+            perspective: 1000px;
+            overflow: hidden;
+        }
+
+        .parallax-layer {
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.8s ease-in-out;
+            position: absolute;
+            width: 100%;
+            max-width: 1200px; /* Максимальная ширина для содержимого */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Стили для scrollA и scrollB */
+        .scrollA {
+            transform: translateY(0);
+            overflow-y: auto; 
+            height: 50vh;
+        }
+
+        .scrollB {
+            transform: translateY(100%);
+            opacity: 0;
+            overflow-y: auto; /* Добавляем прокрутку по оси Y */
+            height: 50vh; /* Высота экрана для scrollB */
+        }
+
+        /* Классы для скрытия и отображения элементов */
+        .hidden-form {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        .visible-list {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
     </style>
     {% include "includes/favicon.html" %}
     {% comment %} {% include "includes/cursor.html" %} {% endcomment %}
@@ -381,417 +466,545 @@
         </div>
       </div>
       
-    {% comment %} <div class="flex justify-center mt-7">
-        {% include "plugins/humanhead.html" %}
-    </div> {% endcomment %}
+    <canvas id="renderCanvas"></canvas>
 
-
-    <canvas id="renderCanvas">
-
-
-
-    </canvas>
     {% block content %}
 
     {% endblock %}
+   
 
-
-    <div class="button-container relative z-10">
+    <div class="button-container relative z-20">
         <a href="{% url 'index' %}" id="nav-home" class="button text-white">
-          <i class="fas fa-home"></i>
-          <span>Главная</span>
-        </a>
-        <a href="{% url 'terminals' %}" id="nav-terminals" class="button text-white">
-          <i class="fas fa-terminal"></i>
-          <span>Терминалы</span>
-        </a>
-        <a href="{% url 'commands' %}" id="nav-commands" class="button text-white">
-          <i class="fas fa-code"></i>
-          <span>Команды</span>
-        </a>
-        <a href="{% url 'tasks' %}" id="nav-tasks" class="button text-white">
-          <i class="fas fa-tasks"></i>
-          <span>Задачи</span>
-        </a>
-        <a href="{% url 'commandset' %}" id="nav-commandset" class="button text-white">
-          <i class="fas fa-random"></i>
-          <span>Комбинации</span>
+            <i class="fas fa-home"></i>
+            <span>Главная</span>
         </a>
         <a href="{% url 'environment_variables' %}" id="nav-environment-variables" class="button text-white">
-          <i class="fa fa-key"></i>
-          <span>Переменные окружения</span>
+            <i class="fa fa-key"></i>
+            <span>Переменные</span>
+        </a>
+        <a href="{% url 'commands' %}" id="nav-commands" class="button text-white">
+            <i class="fas fa-code"></i>
+            <span>Команды</span>
+        </a>
+
+        <a href="{% url 'commandset' %}" id="nav-commandset" class="button text-white">
+            <i class="fas fa-random"></i>
+            <span>Комбинации</span>
+        </a>
+
+        <a href="{% url 'scenario' %}" id="nav-scenarios" class="button text-white">
+            <i class="fa fa-scroll"></i>
+            <span>Сценарии</span>
+        </a>
+        <a href="{% url 'terminals' %}" id="nav-terminals" class="button text-white">
+            <i class="fas fa-terminal"></i>
+            <span>Терминалы</span>
+        </a>
+        <a href="{% url 'tasks' %}" id="nav-tasks" class="button text-white">
+            <i class="fas fa-tasks"></i>
+            <span>Задачи</span>
         </a>
         <a href="/admin/" id="nav-admin" class="button text-white">
-          <i class="fas fa-cog"></i>
-          <span>Админ</span>
+            <i class="fas fa-cog"></i>
+            <span>Админ</span>
         </a>
-      </div>
-    
-    
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.js"></script>
-    <script src="https://cdn.babylonjs.com/particles/babylon.particleHelper.min.js"></script>
-    <script>
-        var canvas = document.getElementById("renderCanvas");
-        var engine = new BABYLON.Engine(canvas, true);
-        var contextMenu = document.getElementById('contextMenu');
-        var content = document.querySelector('.content');
-    
-        var createScene = function() {
-            var scene = new BABYLON.Scene(engine);
-            scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Черный фон
-    
-            const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 2, -10), scene);
-            camera.setTarget(new BABYLON.Vector3(0, 2, 0));
-            camera.inputs.clear();
-    
-            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-            light.intensity = 0.7;
-    
-            // Земля (низ) с анимацией
-            var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
-            var gridMaterial = new BABYLON.GridMaterial("grid", scene);
-            gridMaterial.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8);
-            gridMaterial.majorUnitFrequency = 5;
-            gridMaterial.minorUnitVisibility = 0.45;
-            gridMaterial.gridRatio = 0.5;
-            ground.material = gridMaterial;
-    
-            // Плавное движение камеры
-            var speed = 0.05;
-            scene.registerBeforeRender(function() {
-                camera.position.z += speed;
-                if (camera.position.z > 500) {
-                    camera.position.z = -500;
-                }
+    </div>
+    <div class="blur-background"></div>
+      <script src="https://cdn.babylonjs.com/babylon.js"></script>
+      <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.js"></script>
+      <script src="https://cdn.babylonjs.com/particles/babylon.particleHelper.min.js"></script>
+      <script>
+            var canvas = document.getElementById("renderCanvas");
+            var engine = new BABYLON.Engine(canvas, true);
+            var contextMenu = document.getElementById('contextMenu');
+            var content = document.querySelector('.content');
+        
+            // Создаем новый canvas для отрисовки лица
+            var faceCanvas = document.createElement('canvas');
+            faceCanvas.id = "faceCanvas";
+            faceCanvas.style.position = "absolute";
+            // Изменяем top на 0 и добавляем анимацию плавного опускания
+            faceCanvas.style.top = "0"; // Начальное положение
+            faceCanvas.style.opacity = "0"; // Начальная прозрачность
+            faceCanvas.style.transition = "top 2s, opacity 2s"; 
+            faceCanvas.style.left = "50%"; // Отступ слева
+            faceCanvas.style.filter = "blur(10px)";
+            faceCanvas.style.transform = "translateX(-50%)"; // Центрирование по горизонтали
+            faceCanvas.width = 380;  // Уменьшенные размеры для canvas
+            faceCanvas.height = 300;
+
+            document.body.appendChild(faceCanvas);
+            document.addEventListener("DOMContentLoaded", function() {
+                setTimeout(function() {
+                    faceCanvas.style.top = "2px"; // Конечное положение после задержки
+                    faceCanvas.style.opacity = "1"; // Полная непрозрачность после задержки
+                    faceCanvas.style.filter = "blur(1px)"; // Убираем blur
+                }, 2000); // Задержка 2 секунды
             });
-    
-            // Изменение параметров системы частиц
-            var particleSystem = new BABYLON.ParticleSystem("particles", 200, scene);
-            particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs.com/assets/Flare.png", scene);
-            particleSystem.minEmitBox = new BABYLON.Vector3(-0.2, 0, 0);
-            particleSystem.maxEmitBox = new BABYLON.Vector3(0.2, 0, 0);
-            particleSystem.color1 = new BABYLON.Color4(0.8, 0.1, 0.8, 0.5);
-            particleSystem.color2 = new BABYLON.Color4(0.5, 0, 0.5, 0.3);
-            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
-            particleSystem.minSize = 0.02;
-            particleSystem.maxSize = 0.1;
-            particleSystem.minLifeTime = 0.4;
-            particleSystem.maxLifeTime = 0.8;
-            particleSystem.emitRate = 100;
-            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
-            particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
-            particleSystem.direction1 = new BABYLON.Vector3(-0.2, 1, 0.2);
-            particleSystem.direction2 = new BABYLON.Vector3(0.2, 1, -0.2);
-            particleSystem.minAngularSpeed = 0;
-            particleSystem.maxAngularSpeed = Math.PI;
-            particleSystem.minEmitPower = 0.3;
-            particleSystem.maxEmitPower = 1.0;
-            particleSystem.updateSpeed = 0.015;
-            particleSystem.start();
-    
-            // Обновление позиции системы частиц на основе позиции курсора
-            canvas.addEventListener("mousemove", function(event) {
-                var pickResult = scene.pick(event.clientX, event.clientY);
-                if (pickResult.hit) {
-                    particleSystem.emitter = pickResult.pickedPoint;
-                }
-            });
-    
-            var faceMesh = BABYLON.MeshBuilder.CreateLineSystem("faceMesh", {lines: [[new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 1, 0)]]}, scene);
-            faceMesh.color = new BABYLON.Color3(0, 1, 1);
-            faceMesh.material = new BABYLON.StandardMaterial("neonMaterial", scene);
-            faceMesh.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
-            faceMesh.parent = camera;
-            scene.faceMesh = faceMesh;
-    
-            return scene;
-        };
-    
-        var scene = createScene();
-        engine.runRenderLoop(function() {
-            scene.render();
-        });
-    
-        window.addEventListener("resize", function() {
-            engine.resize();
-        });
-    
-        function toggleVisibility() {
-            const content = document.querySelector('.title-content');
-            const smallLogo = document.getElementById("smallLogo");
-    
-            if (content) {
-                content.classList.add('hidden');
+            
+            function hideFaceCanvas() {
+                faceCanvas.style.top = "0"; // Начальное положение
+                faceCanvas.style.opacity = "0"; // Начальная прозрачность
             }
-    
-            if (smallLogo) {
-                smallLogo.classList.add('visible');
-                smallLogo.classList.remove('hidden');
-            }
-        }
-    
-        document.addEventListener("DOMContentLoaded", toggleVisibility);
-    
-        let lastInputTime = Date.now();
-        let inputCounter = 0;
-        let inputSpeed = 0;
-        let resetColorTimeout;
-    
-        function calculateInputSpeed() {
-            const currentTime = Date.now();
-            const timeDifference = currentTime - lastInputTime;
-            inputSpeed = timeDifference ? 1000 / timeDifference : 0;
-            lastInputTime = currentTime;
-        }
-    
-        function getIntensity(speed) {
-            return Math.min(speed / 10, 1);
-        }
-    
-        function animateColor(scene, targetColor) {
-            const animation = new BABYLON.Animation("colorAnimation", "clearColor", 60, BABYLON.Animation.ANIMATIONTYPE_COLOR4, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-    
-            const keys = [];
-            keys.push({ frame: 0, value: scene.clearColor.clone() });
-            keys.push({ frame: 100, value: targetColor });
-    
-            animation.setKeys(keys);
-            scene.beginDirectAnimation(scene, [animation], 0, 100, false);
-        }
-    
-        function setInteractionColor(scene, intensity, colorType = "blue") {
-            let targetColor;
-            let lineColor;
-    
-            switch (colorType) {
-                case "green":
-                    targetColor = new BABYLON.Color4(0.0, 0.5 * intensity, 0.0, 1);
-                    lineColor = new BABYLON.Color3(0.0, 1.0 * intensity, 0.0);
-                    break;
-                case "red":
-                    targetColor = new BABYLON.Color4(0.5 * intensity, 0.0, 0.0, 1);
-                    lineColor = new BABYLON.Color3(1.0 * intensity, 0.0, 0.0);
-                    break;
-                case "yellow":
-                    targetColor = new BABYLON.Color4(0.5 * intensity, 0.5 * intensity, 0.0, 1);
-                    lineColor = new BABYLON.Color3(1.0 * intensity, 1.0 * intensity, 0.0);
-                    break;
-                default:
-                    targetColor = new BABYLON.Color4(0.0, 0.0, 0.5 * intensity, 1);
-                    lineColor = new BABYLON.Color3(0.0, 0.0, 1.0 * intensity);
-            }
-    
-            animateColor(scene, targetColor);
-            scene.meshes.forEach(mesh => {
-                if (mesh.material && mesh.material.name === "grid") {
-                    mesh.material.lineColor = lineColor;
-                }
-            });
-        }
-    
-        function onSuccessGreen() {
-            setInteractionColor(scene, 1, "green");
-            scheduleResetColor(scene);
-        }
-    
-        function onSuccessRed() {
-            setInteractionColor(scene, 1, "red");
-            scheduleResetColor(scene);
-        }
-    
-        function onSuccessYellow() {
-            setInteractionColor(scene, 1, "yellow");
-            scheduleResetColor(scene);
-        }
-    
-        function resetColor(scene) {
-            const targetColor = new BABYLON.Color4(0.0, 0.0, 0.0, 1);
-            animateColor(scene, targetColor);
-            scene.meshes.forEach(mesh => {
-                if (mesh.material && mesh.material.name === "grid") {
-                    mesh.material.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8);
-                }
-            });
-        }
-    
-        function scheduleResetColor(scene) {
-            if (resetColorTimeout) {
-                clearTimeout(resetColorTimeout);
-            }
-            resetColorTimeout = setTimeout(() => resetColor(scene), 1000);
-        }
-    
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('focus', () => {
-                inputCounter = 0;
-                setInteractionColor(scene, 0.1);
-                scheduleResetColor(scene);
-            });
-    
-            input.addEventListener('input', () => {
-                calculateInputSpeed();
-                inputCounter++;
-                const intensity = getIntensity(inputSpeed * inputCounter);
-                setInteractionColor(scene, intensity);
-                scheduleResetColor(scene);
-            });
-    
-            input.addEventListener('blur', () => {
-                inputCounter = 0;
-                inputSpeed = 0;
-                scheduleResetColor(scene);
-            });
-        });
-    
-        document.addEventListener("DOMContentLoaded", function() {
-            var currentUrl = window.location.pathname;
-            document.querySelectorAll('.button').forEach(function(button) {
-                var href = button.getAttribute('href');
-                if (currentUrl === href) {
-                    button.classList.add('active');
-                }
-            });
-        });
-    
-        document.addEventListener("DOMContentLoaded", function() {
-            const smallLogo = document.getElementById("smallLogo");
-            const buttonContainer = document.querySelector(".button-container");
-            const buttons = buttonContainer.querySelectorAll(".button");
-    
-            smallLogo.classList.add("closed");
-    
-            function openBrackets() {
-                smallLogo.classList.remove("closed");
-                smallLogo.classList.add("open");
-            }
-    
-            function closeBrackets() {
-                smallLogo.classList.remove("open");
-                smallLogo.classList.add("closed");
-            }
-    
-            setTimeout(openBrackets, 500);
-    
-            buttons.forEach(button => {
-                button.addEventListener("click", function(event) {
-                    event.preventDefault();
-                    closeBrackets();
-                    const href = this.getAttribute("href");
-                    setTimeout(() => {
-                        window.location.href = href;
-                    }, 500);
-                });
-            });
-        });
-    
-        function updateFaceMesh(keypoints) {
-            var scene = engine.scenes[0];
-            var lines = [];
-    
-            var createLines = (points, closeLoop = true) => {
-                var babylonPoints = points.map(p => new BABYLON.Vector3((p[0] - canvas.width / 2) / 25, -(p[1] - canvas.height / 2) / 25, 0));
-                for (let i = 0; i < babylonPoints.length - 1; i++) {
-                    lines.push([babylonPoints[i], babylonPoints[i + 1]]);
-                }
-                if (closeLoop) {
-                    lines.push([babylonPoints[babylonPoints.length - 1], babylonPoints[0]]);
-                }
-            }
-    
-            if (Array.isArray(keypoints)) {
-                keypoints.forEach(pointsGroup => {
-                    if (pointsGroup.upper_nose) createLines(pointsGroup.upper_nose, false);
-                    if (pointsGroup.right_eyebrow) createLines(pointsGroup.right_eyebrow, false);
-                    if (pointsGroup.left_eyebrow) createLines(pointsGroup.left_eyebrow, false);
-                    if (pointsGroup.right_eye) createLines(pointsGroup.right_eye, true);
-                    if (pointsGroup.left_eye) createLines(pointsGroup.left_eye, true);
-                    if (pointsGroup.mouth) createLines(pointsGroup.mouth, true);
-                    if (pointsGroup.jaw) createLines(pointsGroup.jaw, false);
-                    if (pointsGroup.cheeks) createLines(pointsGroup.cheeks, false);
-                    if (pointsGroup.chin) createLines(pointsGroup.chin, false);
-                });
-    
-                if (scene.faceMesh) {
-                    scene.faceMesh.dispose();
-                }
-                console.log('Creating new faceMesh with lines:', lines); // Отладочная информация
-                scene.faceMesh = BABYLON.MeshBuilder.CreateLineSystem("faceLines", {lines: lines, updatable: true}, scene);
-                scene.faceMesh.color = new BABYLON.Color3(0, 1, 1);
-                scene.faceMesh.material = new BABYLON.StandardMaterial("neonMaterial", scene);
-                scene.faceMesh.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
-            }
-        }
-    
-        navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 400 }, height: { ideal: 300 } } }).then(stream => {
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
-    
-            const socket = new WebSocket('ws://localhost:9991/ws/video/');
-    
-            socket.onopen = () => {
-                console.log('WebSocket connection established');
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    startStreaming();
-                }
-            };
-    
-            socket.onmessage = event => {
-                try {
-                    const keypoints = JSON.parse(event.data);
-                    if (Array.isArray(keypoints)) {
-                        updateFaceMesh(keypoints);
-                    } else {
-                        console.error('Unexpected keypoints structure:', keypoints);
+          var faceCtx = faceCanvas.getContext('2d');
+      
+          var createScene = function() {
+              console.log("Creating scene...");
+              var scene = new BABYLON.Scene(engine);
+              scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Черный фон
+      
+              var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 2, -10), scene);
+              camera.setTarget(new BABYLON.Vector3(0, 2, 0));
+              camera.inputs.clear();
+      
+              var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+              light.intensity = 0.7;
+      
+              // Земля (низ) с анимацией
+              var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
+              var gridMaterial = new BABYLON.GridMaterial("grid", scene);
+              gridMaterial.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8);
+              gridMaterial.majorUnitFrequency = 5;
+              gridMaterial.minorUnitVisibility = 0.45;
+              gridMaterial.gridRatio = 0.5;
+              ground.material = gridMaterial;
+      
+              // Плавное движение камеры
+              var speed = 0.05;
+              scene.registerBeforeRender(function() {
+                  camera.position.z += speed;
+                  if (camera.position.z > 500) {
+                      camera.position.z = -500;
+                  }
+              });
+      
+              // Изменение параметров системы частиц
+              var particleSystem = new BABYLON.ParticleSystem("particles", 200, scene); // Ещё уменьшить количество частиц
+              particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs.com/assets/Flare.png", scene);
+              particleSystem.minEmitBox = new BABYLON.Vector3(-0.2, 0, 0); // Ещё уменьшить диапазон эмиссии
+              particleSystem.maxEmitBox = new BABYLON.Vector3(0.2, 0, 0);
+              particleSystem.color1 = new BABYLON.Color4(0.8, 0.1, 0.8, 0.5); // Сделать частицы менее яркими
+              particleSystem.color2 = new BABYLON.Color4(0.5, 0, 0.5, 0.3);
+              particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+              particleSystem.minSize = 0.02; // Ещё уменьшить размер частиц
+              particleSystem.maxSize = 0.1;
+              particleSystem.minLifeTime = 0.4;
+              particleSystem.maxLifeTime = 0.8;
+              particleSystem.emitRate = 100; // Ещё уменьшить скорость эмиссии
+              particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+              particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+              particleSystem.direction1 = new BABYLON.Vector3(-0.2, 1, 0.2);
+              particleSystem.direction2 = new BABYLON.Vector3(0.2, 1, -0.2);
+              particleSystem.minAngularSpeed = 0;
+              particleSystem.maxAngularSpeed = Math.PI;
+              particleSystem.minEmitPower = 0.3; // Ещё уменьшить мощность эмиссии
+              particleSystem.maxEmitPower = 1.0;
+              particleSystem.updateSpeed = 0.015;
+              particleSystem.start();
+      
+              // Обновление позиции системы частиц на основе позиции курсора
+              canvas.addEventListener("mousemove", function(event) {
+                  var pickResult = scene.pick(event.clientX, event.clientY);
+                  if (pickResult.hit) {
+                      particleSystem.emitter = pickResult.pickedPoint;
+                  }
+              });
+      
+            // Функция для анимации пламени с текстурой, дымом и плавным движением
+            var drawFlame = function(ctx, x, y, width, height) {
+                var flameColors = ['rgba(0, 255, 0, 1)', 'rgba(50, 205, 50, 1)', 'rgba(34, 139, 34, 1)'];
+                var smokeColors = ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.2)'];
+                var flameHeight = height;
+            
+                for (var i = 0; i < flameHeight; i++) {
+                    var flameWidth = width * (1 - i / flameHeight); // Сужение пламени к верху
+                    var flameX = x + Math.random() * width - flameWidth / 2;
+                    var flameY = y - i * 1.5;  // Пламя поднимается вверх по диагонали
+                    ctx.fillStyle = flameColors[Math.floor(Math.random() * flameColors.length)];
+                    ctx.fillRect(flameX, flameY, flameWidth, 1);
+            
+                    // Добавление дыма
+                    if (i % 5 === 0) {
+                        var smokeWidth = flameWidth * 1.5;
+                        var smokeX = flameX + Math.random() * smokeWidth - smokeWidth / 2;
+                        var smokeY = flameY - Math.random() * 10;
+                        ctx.fillStyle = smokeColors[Math.floor(Math.random() * smokeColors.length)];
+                        ctx.fillRect(smokeX, smokeY, smokeWidth, 2);
                     }
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
                 }
             };
-    
-            socket.onerror = error => {
-                console.error('WebSocket error:', error);
-            };
-    
-            socket.onclose = () => {
-                console.log('WebSocket connection closed');
-            };
-    
-            const frameCanvas = document.createElement('canvas');
-            frameCanvas.width = 200; // Размер ожидаемый сервером
-            frameCanvas.height = 150; // Размер ожидаемый сервером
-            const context = frameCanvas.getContext('2d', { willReadFrequently: true });
-    
-            const sendFrame = () => {
-                if (video.paused || video.ended || socket.readyState !== WebSocket.OPEN) {
-                    return;
+            
+            var drawNeonFace = function(points) {
+                faceCtx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+                faceCtx.strokeStyle = "lime";
+                faceCtx.lineWidth = 2;
+            
+                var drawFacePart = function(part) {
+                    faceCtx.beginPath();
+                    faceCtx.moveTo(part[0][0] / 2, part[0][1] / 2);
+                    for (var i = 1; i < part.length; i++) {
+                        faceCtx.lineTo(part[i][0] / 2, part[i][1] / 2);
+                    }
+                    faceCtx.stroke();
+                };
+            
+                drawFacePart(points.upper_nose);
+                drawFacePart(points.right_eyebrow);
+                drawFacePart(points.left_eyebrow);
+                drawFacePart(points.right_eye);
+                drawFacePart(points.left_eye);
+                drawFacePart(points.mouth);
+                drawFacePart(points.jaw);
+                drawFacePart(points.chin);
+                drawFacePart(points.cheeks);
+            
+                // Анимация пламени в глазах
+                var rightEye = points.right_eye;
+                var leftEye = points.left_eye;
+            
+                if (rightEye.length > 0 && leftEye.length > 0) {
+                    var rightEyeCenterX = (rightEye[0][0] + rightEye[3][0]) / 2;
+                    var rightEyeCenterY = (rightEye[1][1] + rightEye[4][1]) / 2;
+                    var leftEyeCenterX = (leftEye[0][0] + leftEye[3][0]) / 2;
+                    var leftEyeCenterY = (leftEye[1][1] + leftEye[4][1]) / 2;
+            
+                    drawFlame(faceCtx, rightEyeCenterX / 2 - 5, rightEyeCenterY / 2, 15, 20);  // Пламя немного ниже и больше
+                    drawFlame(faceCtx, leftEyeCenterX / 2 - 5, leftEyeCenterY / 2, 15, 20);   // Пламя немного ниже и больше
                 }
-    
-                context.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
-                const frame = context.getImageData(0, 0, frameCanvas.width, frameCanvas.height).data;
-                socket.send(frame.buffer);
-    
-                requestAnimationFrame(sendFrame);
+            
+                // Дорисовка овала лица
+                var oval = points.oval;
+                faceCtx.beginPath();
+                faceCtx.moveTo(oval[0][0] / 2, oval[0][1] / 2);
+                for (var i = 1; i < oval.length; i++) {
+                    faceCtx.lineTo(oval[i][0] / 2, oval[i][1] / 2);
+                }
+                faceCtx.stroke();
             };
-    
-            const startStreaming = () => {
-                console.log('Starting to stream video frames');
-                sendFrame();
+            
+            
+
+
+              var socket = new WebSocket("ws://localhost:9991/ws/video/");
+              socket.binaryType = "arraybuffer";
+      
+              socket.onopen = function() {
+                  console.log("WebSocket connection established.");
+              };
+      
+              socket.onerror = function(error) {
+                  console.log("WebSocket error: ", error);
+              };
+      
+              socket.onmessage = function(event) {
+                  var data = JSON.parse(event.data);
+                  if (data.length > 0) {
+                      drawNeonFace(data[0]);
+                  } else {
+                      console.info("No face data received");
+                      
+                  }
+              };
+      
+              navigator.mediaDevices.getUserMedia({video: true}).then(function(stream) {
+                  console.log("Access to webcam granted.");
+                  var video = document.createElement('video');
+                  video.srcObject = stream;
+                  video.play();
+      
+                  var canvas = document.createElement('canvas');
+                  canvas.width = 240;  // Уменьшенные размеры для canvas
+                  canvas.height = 160;
+                  var ctx = canvas.getContext('2d', {willReadFrequently: true});
+      
+                  setInterval(function() {
+                      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                      // console.log("Sending frame data to WebSocket.");
+                      socket.send(imageData.data.buffer);
+                  }, 100);
+              }).catch(function(error) {
+                  console.log("Error accessing webcam: ", error);
+              });
+      
+              return scene;
+          };
+      
+          var scene = createScene();
+          engine.runRenderLoop(function() {
+              scene.render();
+          });
+      
+          window.addEventListener("resize", function() {
+              engine.resize();
+              faceCanvas.style.width = window.innerWidth / 4 + "px";
+              faceCanvas.style.height = window.innerHeight / 4 + "px";
+          });
+
+
+      
+          function toggleVisibility() {
+              const content = document.querySelector('.title-content');
+              const smallLogo = document.getElementById("smallLogo");
+      
+              if (content) {
+                  content.classList.add('hidden');
+              }
+      
+              if (smallLogo) {
+                  smallLogo.classList.add('visible');
+                  smallLogo.classList.remove('hidden');
+              }
+          }
+      
+          document.addEventListener("DOMContentLoaded", toggleVisibility);
+      
+          let lastInputTime = Date.now();
+          let inputCounter = 0;
+          let inputSpeed = 0;
+          let resetColorTimeout;
+      
+          function calculateInputSpeed() {
+              const currentTime = Date.now();
+              const timeDifference = currentTime - lastInputTime;
+              inputSpeed = timeDifference ? 1000 / timeDifference : 0;
+              lastInputTime = currentTime;
+          }
+      
+          function getIntensity(speed) {
+              return Math.min(speed / 10, 1);
+          }
+      
+          function animateColor(scene, targetColor) {
+              const animation = new BABYLON.Animation("colorAnimation", "clearColor", 60, BABYLON.Animation.ANIMATIONTYPE_COLOR4, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+      
+              const keys = [];
+              keys.push({ frame: 0, value: scene.clearColor.clone() });
+              keys.push({ frame: 100, value: targetColor });
+      
+              animation.setKeys(keys);
+              scene.beginDirectAnimation(scene, [animation], 0, 100, false);
+          }
+      
+          function setInteractionColor(scene, intensity, colorType = "blue") {
+              let targetColor;
+              let lineColor;
+      
+              switch (colorType) {
+                  case "green":
+                      targetColor = new BABYLON.Color4(0.0, 0.5 * intensity, 0.0, 1); // Зеленый фон
+                      lineColor = new BABYLON.Color3(0.0, 1.0 * intensity, 0.0); // Зеленый цвет линий
+                      break;
+                  case "red":
+                      targetColor = new BABYLON.Color4(0.5 * intensity, 0.0, 0.0, 1); // Красный фон
+                      lineColor = new BABYLON.Color3(1.0 * intensity, 0.0, 0.0); // Красный цвет линий
+                      break;
+                  case "yellow":
+                      targetColor = new BABYLON.Color4(0.5 * intensity, 0.5 * intensity, 0.0, 1); // Желтый фон
+                      lineColor = new BABYLON.Color3(1.0 * intensity, 1.0 * intensity, 0.0); // Желтый цвет линий
+                      break;
+                  default:
+                      targetColor = new BABYLON.Color4(0.0, 0.0, 0.5 * intensity, 1); // Синий фон
+                      lineColor = new BABYLON.Color3(0.0, 0.0, 1.0 * intensity); // Синий цвет линий
+              }
+      
+              animateColor(scene, targetColor);
+              scene.meshes.forEach(mesh => {
+                  if (mesh.material && mesh.material.name === "grid") {
+                      mesh.material.lineColor = lineColor;
+                  }
+              });
+          }
+      
+          // Примеры вызова функций для разных цветов при успехе
+          function onSuccessGreen() {
+              setInteractionColor(scene, 1, "green"); // Максимальная intensity зеленого цвета
+              scheduleResetColor(scene); // Возврат цвета после 1 секунды
+          }
+      
+          function onSuccessRed() {
+              setInteractionColor(scene, 1, "red"); // Максимальная intensity красного цвета
+              scheduleResetColor(scene); // Возврат цвета после 1 секунды
+          }
+      
+          function onSuccessYellow() {
+              setInteractionColor(scene, 1, "yellow"); // Максимальная intensity желтого цвета
+              scheduleResetColor(scene); // Возврат цвета после 1 секунды
+          }
+      
+          function resetColor(scene) {
+              const targetColor = new BABYLON.Color4(0.0, 0.0, 0.0, 1); // Черный фон
+              animateColor(scene, targetColor);
+              scene.meshes.forEach(mesh => {
+                  if (mesh.material && mesh.material.name === "grid") {
+                      mesh.material.lineColor = new BABYLON.Color3(0.8, 0.3, 0.8); // Розовый цвет линий
+                  }
+              });
+          }
+      
+          function scheduleResetColor(scene) {
+              if (resetColorTimeout) {
+                  clearTimeout(resetColorTimeout);
+              }
+              resetColorTimeout = setTimeout(() => resetColor(scene), 1000); // 1 секунда простоя до возврата цвета
+          }
+      
+          document.querySelectorAll('input').forEach(input => {
+              input.addEventListener('focus', () => {
+                  inputCounter = 0;
+                  setInteractionColor(scene, 0.1); // Начальный цвет при фокусе
+                  scheduleResetColor(scene);
+              });
+      
+              input.addEventListener('input', () => {
+                  calculateInputSpeed();
+                  inputCounter++;
+                  const intensity = getIntensity(inputSpeed * inputCounter);
+                  setInteractionColor(scene, intensity);
+                  scheduleResetColor(scene);
+              });
+      
+              input.addEventListener('blur', () => {
+                  inputCounter = 0;
+                  inputSpeed = 0;
+                  scheduleResetColor(scene);
+              });
+          });
+      
+          document.addEventListener("DOMContentLoaded", function() {
+              // Получаем текущий URL
+              var currentUrl = window.location.pathname;
+      
+              // Перебираем все ссылки и добавляем класс активной кнопке
+              document.querySelectorAll('.button').forEach(function(button) {
+                  var href = button.getAttribute('href');
+                  if (currentUrl === href) {
+                      button.classList.add('active');
+                  }
+              });
+          });
+      
+          document.addEventListener("DOMContentLoaded", function() {
+              const smallLogo = document.getElementById("smallLogo");
+              const buttonContainer = document.querySelector(".button-container");
+              const buttons = buttonContainer.querySelectorAll(".button");
+      
+              // Изначально скобки закрыты
+              smallLogo.classList.add("closed");
+      
+              // Функция для открытия скобок при загрузке страницы
+              function openBrackets() {
+                  smallLogo.classList.remove("closed");
+                  smallLogo.classList.add("open");
+              }
+      
+              // Функция для закрытия скобок
+              function closeBrackets() {
+                  smallLogo.classList.remove("open");
+                  smallLogo.classList.add("closed");
+              }
+      
+              // Открытие скобок при загрузке страницы
+              setTimeout(openBrackets, 500); // Задержка для плавного эффекта
+      
+              // Закрытие скобок и переход на другую страницу при нажатии на кнопку
+              buttons.forEach(button => {
+                  button.addEventListener("click", function(event) {
+                      event.preventDefault();
+                      hideFaceCanvas();
+                      closeBrackets();
+                      const href = this.getAttribute("href");
+                      setTimeout(() => {
+                          window.location.href = href;
+                      }, 500); // Задержка для завершения анимации
+                  });
+              });
+          });
+
+          
+      </script>
+      <script>
+        try{
+            var formSection = document.querySelector('.scrollA');
+            var listSection = document.querySelector('.scrollB');
+                
+            function handleScrollToggle () {
+                if (formSection.classList.contains('hidden-form')) {
+                    formSection.classList.remove('hidden-form');
+                    listSection.classList.remove('visible-list');
+                } else {
+                    formSection.classList.add('hidden-form');
+                    listSection.classList.add('visible-list');
+                }
             };
-    
-            video.addEventListener('loadedmetadata', () => {
-                frameCanvas.width = 200; // Устанавливаем размер canvas
-                frameCanvas.height = 150; // Устанавливаем размер canvas
-    
-                video.addEventListener('play', () => {
-                    startStreaming();
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                let isScrolling = false;
+            
+                const onScroll = (event) => {
+                    if (isScrolling) return; // Прерывание, если уже идет переключение
+            
+                    if (formSection && listSection) {
+                        if (event.deltaY > 0) { // Прокрутка вниз
+                            if (!formSection.classList.contains('hidden-form')) {
+                                handleScrollToggle();
+                            }
+                        } else { // Прокрутка вверх
+                            if (formSection.classList.contains('hidden-form')) {
+                                const scrollTop = listSection.scrollTop;
+                                if (scrollTop === 0) {
+                                    handleScrollToggle();
+                                }
+                            }
+                        }
+                    }
+            
+                    // Отключение блокировки через 1 секунду
+                    isScrolling = true;
+                    setTimeout(() => {
+                        isScrolling = false;
+                    }, 1000);
+                };
+                if (!listSection) {
+                    console.error('Element with class .scrollB not found');
+                    return
+                }
+                listSection.addEventListener('scroll', () => {
+                    const scrollTop = listSection.scrollTop;
+                    const scrollHeight = listSection.scrollHeight;
+                    const clientHeight = listSection.clientHeight;
+            
+                    // Если прокрутка вверху или внизу, разблокируем переключение
+                    if (scrollTop === 0 || scrollTop + clientHeight >= scrollHeight) {
+                        isScrolling = false;
+                    }
+                });
+            
+                if (!formSection) {
+                    console.error('Element with class .scrollA not found');
+                }
+             
+                document.addEventListener('wheel', onScroll);
+            
+                formSection.addEventListener('scroll', (event) => {
+                    const scrollTop = formSection.scrollTop;
+                    const scrollHeight = formSection.scrollHeight;
+                    const clientHeight = formSection.clientHeight;
+            
+                    // Если прокрутка вниз, переключаем видимость
+                    if (scrollTop + clientHeight >= scrollHeight) {
+                        handleScrollToggle();
+                    }
                 });
             });
-        });
-    </script>
-    
-    
+        }
+        catch {
+            console.log("No need to parallax")
+        }
+        
+        </script>
+        
+
     {% block js %}
 
     {% endblock %}

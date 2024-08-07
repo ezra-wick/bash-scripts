@@ -1,35 +1,25 @@
 
 <style>
-    body, html {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: #000;
+    #video {
+        display: none;
     }
     #renderCanvas {
         width: 100%;
         height: 100%;
     }
-    #video {
-        display: none;
-    }
+
     #faceCanvas {
         position: absolute;
         top: 0;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1;
+
     }
 </style>
-
 <video id="video" autoplay playsinline></video>
-<canvas id="faceCanvas"></canvas>
-
-
+<canvas class="z-10" id="faceCanvas"></canvas>
+  
 <script>
     navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 400 }, height: { ideal: 300 } } }).then(stream => {
         const video = document.getElementById('video');
@@ -56,8 +46,6 @@
                 console.error('Error parsing WebSocket message:', error);
             }
         };
-        
-        
 
         socket.onerror = error => {
             console.error('WebSocket error:', error);
@@ -96,12 +84,9 @@
             });
         });
 
-        var renderCanvas = document.getElementById("renderCanvas");
-        var engine = new BABYLON.Engine(renderCanvas, true);
-
         var createScene = function() {
             var scene = new BABYLON.Scene(engine);
-            scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+            scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // Устанавливаем прозрачный фон
 
             var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 0, -15), scene);
             camera.setTarget(BABYLON.Vector3.Zero());
@@ -135,7 +120,7 @@
         function updateFaceMesh(keypoints) {
             var scene = engine.scenes[0];
             var lines = [];
-        
+
             var createLines = (points, closeLoop = true) => {
                 var babylonPoints = points.map(p => new BABYLON.Vector3((p[0] - faceCanvas.width / 2) / 25, -(p[1] - faceCanvas.height / 2) / 25, 0));
                 for (let i = 0; i < babylonPoints.length - 1; i++) {
@@ -145,8 +130,7 @@
                     lines.push([babylonPoints[babylonPoints.length - 1], babylonPoints[0]]);
                 }
             }
-        
-            // Проверка структуры keypoints перед использованием
+
             if (Array.isArray(keypoints)) {
                 keypoints.forEach(pointsGroup => {
                     if (pointsGroup.upper_nose) createLines(pointsGroup.upper_nose, false);
@@ -159,7 +143,7 @@
                     if (pointsGroup.cheeks) createLines(pointsGroup.cheeks, false);
                     if (pointsGroup.chin) createLines(pointsGroup.chin, false);
                 });
-        
+
                 if (scene.faceMesh) {
                     scene.faceMesh.dispose();
                 }
@@ -167,12 +151,11 @@
                 scene.faceMesh.color = new BABYLON.Color3(0, 1, 1);
                 scene.faceMesh.material = new BABYLON.StandardMaterial("neonMaterial", scene);
                 scene.faceMesh.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
-        
-                // Рендеринг лица на новом canvas
+
                 faceContext.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
                 faceContext.strokeStyle = 'cyan';
                 faceContext.lineWidth = 2;
-        
+
                 keypoints.forEach(pointsGroup => {
                     Object.values(pointsGroup).forEach(points => {
                         faceContext.beginPath();
@@ -190,6 +173,5 @@
                 });
             }
         }
-    })
+    });
 </script>
-

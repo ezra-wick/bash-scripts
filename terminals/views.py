@@ -1,7 +1,7 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
+import time
 import subprocess
 
 from django.shortcuts import render, get_object_or_404
@@ -9,15 +9,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status, viewsets
-from .models import Terminal, Command, CommandSet, Space, Folder, Task, EnvironmentVariable, Scenario, ScenarioCommandSetOrder
+from .models import Terminal, Command, CommandSet, Space, Folder, Task, EnvironmentVariable, Scenario, ScenarioCommandSetOrder, CommandSetVariable
 from .serializers import (
     TerminalSerializer, CommandSerializer, CommandSetSerializer,
     SpaceSerializer, FolderSerializer, TaskSerializer, EnvironmentVariableSerializer,
-    ScenarioSerializer, ScenarioCommandSetOrderSerializer
+    ScenarioReadNewSerializer, ScenarioWriteNewSerializer
 )
 from .filters import (
     TerminalFilter, CommandFilter, CommandSetFilter,
-    SpaceFilter, FolderFilter, TaskFilter, EnvironmentVariableFilter, ScenarioFilter, ScenarioCommandSetOrderFilter
+    SpaceFilter, FolderFilter, TaskFilter, EnvironmentVariableFilter, ScenarioFilter, ScenarioCommandSetOrderFilter, CommandSetVariableFilter
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -47,12 +47,12 @@ def post_command_output(request):
 @api_view(['POST'])
 def start_terminal(request):
     try:
-        # Запуск команды через subprocess
-        result = subprocess.run(['cmd.exe', '/C', 'start', 'wsl', '/bin/bash', '-c', 'exec $SHELL'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return Response({"message": "Terminal started", "output": result.stdout.decode('utf-8')}, status=status.HTTP_200_OK)
-    except subprocess.CalledProcessError as e:
-        return Response({"error": str(e), "output": e.stderr.decode('utf-8')}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        # Запуск команды через subprocess в фоновом режиме
+        subprocess.Popen(['cmd.exe', '/C', 'start', 'wsl', '/bin/bash', '-c', 'exec $SHELL'])
+        time.sleep(2)
+        return Response({"message": "Terminal started"}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def index(request):
@@ -85,6 +85,12 @@ def environment_variables(request):
     context = {}
     # context['tasks'] = Task.objects.all()
     return render(request, 'pages/environment_variables.html', context)
+
+def scenario(request):
+    context = {}
+    # context['tasks'] = Task.objects.all()
+    return render(request, 'pages/scenario.html', context)
+
 
 def head(request):
     context = {}
@@ -292,21 +298,78 @@ class EnvironmentVariableViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-
 class ScenarioViewSet(viewsets.ModelViewSet):
     queryset = Scenario.objects.all()
-    serializer_class = ScenarioSerializer
     filterset_class = ScenarioFilter
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields = ['name', 'status']
+    search_fields = ['name']
     ordering_fields = '__all__'
     ordering = ['-created']
 
-class ScenarioCommandSetOrderViewSet(viewsets.ModelViewSet):
-    queryset = ScenarioCommandSetOrder.objects.all()
-    serializer_class = ScenarioCommandSetOrderSerializer
-    filterset_class = ScenarioCommandSetOrderFilter
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields = ['scenario__name', 'command_set__name']
-    ordering_fields = '__all__'
-    ordering = ['-created']
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return ScenarioReadNewSerializer
+        return ScenarioWriteNewSerializer
+
+    def create(self, request, *args, **kwargs):
+        logger.warning(f"Полученные данные для создания: {request.data}")
+        try:
+            response = super().create(request, *args, **kwargs)
+            logger.warning(f"Созданный объект: {response.data}")
+            return response
+        except Exception as e:
+            logger.exception("Ошибка при создании сценария")
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        logger.warning(f"Полученные данные для обновления: {request.data}")
+        try:
+            response = super().update(request, *args, **kwargs)
+            logger.warning(f"Обновленный объект: {response.data}")
+            return response
+        except Exception as e:
+            logger.exception("Ошибка при обновлении сценария")
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# class ScenarioCommandSetOrderViewSet(viewsets.ModelViewSet):
+#     queryset = ScenarioCommandSetOrder.objects.all()
+#     serializer_class = ScenarioCommandSetOrderSerializer
+#     filterset_class = ScenarioCommandSetOrderFilter
+#     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+#     search_fields = ['scenario__name', 'command_set__name']
+#     ordering_fields = '__all__'
+#     ordering = ['-created']
+
+#     def create(self, request, *args, **kwargs):
+#         logger.debug(f"Полученные данные для создания: {request.data}")
+#         response = super().create(request, *args, **kwargs)
+#         logger.debug(f"Ожидаемые данные для создания: {self.get_serializer().data}")
+#         return response
+
+#     def update(self, request, *args, **kwargs):
+#         logger.debug(f"Полученные данные для обновления: {request.data}")
+#         response = super().update(request, *args, **kwargs)
+#         logger.debug(f"Ожидаемые данные для обновления: {self.get_serializer().data}")
+#         return response
+    
+# views.py
+
+# class CommandSetVariableViewSet(viewsets.ModelViewSet):
+#     queryset = CommandSetVariable.objects.all()
+#     serializer_class = CommandSetVariableSerializer
+#     filterset_class = CommandSetVariableFilter
+#     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+#     search_fields = ['scenario__name', 'command_set__name', 'environment_variable__key']
+#     ordering_fields = '__all__'
+#     ordering = ['-created']
+
+#     def create(self, request, *args, **kwargs):
+#         logger.debug(f"Received data for creation: {request.data}")
+#         response = super().create(request, *args, **kwargs)
+#         logger.debug(f"Created object: {response.data}")
+#         return response
+
+#     def update(self, request, *args, **kwargs):
+#         logger.debug(f"Received data for update: {request.data}")
+#         response = super().update(request, *args, **kwargs)
+#         logger.debug(f"Updated object: {response.data}")
+#         return response

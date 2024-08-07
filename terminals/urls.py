@@ -12,7 +12,8 @@ router.register(r'folders', views.FolderViewSet)
 router.register(r'tasks', views.TaskViewSet)
 router.register(r'environment-variables', views.EnvironmentVariableViewSet)
 router.register(r'scenarios', views.ScenarioViewSet)
-router.register(r'scenario-command-set-orders', views.ScenarioCommandSetOrderViewSet)
+# router.register(r'scenario-command-set-orders', views.ScenarioCommandSetOrderViewSet)
+# router.register(r'commandset-variables', views.CommandSetVariableViewSet)
 
 
 urlpatterns = [
@@ -23,6 +24,7 @@ urlpatterns = [
     path('commands/', views.commands_view, name='commands'),
     path('commandset/', views.commandset_view, name='commandset'),
     path('environment_variables/', views.environment_variables, name='environment_variables'),
+    path('scenario/', views.scenario, name='scenario'),
     path('head/', views.head, name='head'),
     # Существующие API-эндпоинты
     path('api/get_terminal_id/', views.get_terminal_id, name='get_terminal_id'),

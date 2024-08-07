@@ -1,0 +1,15 @@
+<!-- scenario_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Список Сценариев{% endblock %}
+{% block content %}
+{% include 'pages/includes/commandset_styles.html' %}
+
+<div class="container mx-auto py-8 z-10">
+    <h1 class="text-2xl font-bold mb-4 text-white">Список Сценариев</h1>
+    <input type="text" id="searchScenarioInput" placeholder="Искать сценарии..." class="search-bar">
+    <div id="scenarioList" class="scroll-container card-container">
+        <!-- Сценарии будут динамически добавлены здесь -->
+    </div>
+</div>
+{% endblock %}

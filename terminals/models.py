@@ -230,8 +230,8 @@ class EnvironmentVariable(models.Model):
 
 class Scenario(models.Model):
     name = models.CharField(max_length=255, verbose_name="Название сценария")
-    global_environment_variables = models.ManyToManyField(EnvironmentVariable, verbose_name="Общие переменные окружения", related_name='scenarios_global')
-    command_sets = models.ManyToManyField(CommandSet, through='ScenarioCommandSetOrder', verbose_name="Комбинации команд", related_name='scenarios')
+    global_environment_variables = models.ManyToManyField(EnvironmentVariable, verbose_name="Общие переменные окружения", related_name='scenarios_global', blank=True)
+    command_sets = models.ManyToManyField(CommandSet, through='ScenarioCommandSetOrder', verbose_name="Комбинации команд", related_name='scenarios', blank=True)
     output = models.TextField(blank=True, null=True, verbose_name="Вывод")
     created = models.DateTimeField(auto_now_add=True, verbose_name='📅 Дата создания')
     updated = models.DateTimeField(auto_now=True, verbose_name='🔄 Дата обновления')
@@ -253,10 +253,20 @@ class ScenarioCommandSetOrder(models.Model):
     class Meta:
         ordering = ['order']
 
+class CommandSetVariable(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    command_set = models.ForeignKey(CommandSet, on_delete=models.CASCADE)
+    environment_variable = models.ForeignKey(EnvironmentVariable, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True, verbose_name='📅 Дата создания')
+    updated = models.DateTimeField(auto_now=True, verbose_name='🔄 Дата обновления')
+
+    class Meta:
+        unique_together = ('scenario', 'command_set', 'environment_variable')
+
 @receiver(post_save, sender=Scenario)
 def send_scenario_to_terminal(sender, instance, created, **kwargs):
     if created:
-        environment_variables = instance.environment_variables.all()
+        environment_variables = instance.global_environment_variables.all()
         env_vars_str = ' '.join([f'{var.key}={var.value}' for var in environment_variables])
 
         command_set_orders = ScenarioCommandSetOrder.objects.filter(scenario=instance).order_by('order')

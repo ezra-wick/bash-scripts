@@ -112,8 +112,10 @@
                 if (response.ok) {
                     loadCommands();
                     commandModal.classList.add('hidden');
+                    onSuccessGreen();
                 } else {
                     console.error('Не удалось обновить команду');
+                    onSuccessRed();
                 }
             });
         });
@@ -145,8 +147,10 @@
                 .then(response => {
                     if (response.ok) {
                         loadCommands();
+                        onSuccessGreen();
                     } else {
                         console.error('Не удалось удалить команду');
+                        onSuccessRed();
                     }
                 });
             }

@@ -140,9 +140,11 @@
                 if (response.ok) {
                     loadTasks();
                     taskModal.classList.add('hidden');
+                    onSuccessGreen();
                 } else {
                     response.json().then(data => {
                         console.error('Не удалось обновить задачу:', data);
+                        onSuccessRed();
                     });
                 }
             });
@@ -176,8 +178,10 @@
                 .then(response => {
                     if (response.ok) {
                         loadTasks();
+                        onSuccessGreen();
                     } else {
                         console.error('Не удалось удалить задачу');
+                        onSuccessRed();
                     }
                 });
             }

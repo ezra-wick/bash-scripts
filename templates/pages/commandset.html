@@ -3,31 +3,34 @@
 {% block title %}Комбинации{% endblock %}
 {% block content %}
 {% include 'pages/includes/commandset_styles.html' %}
-<div class="container mx-auto py-8 z-10">
+<div class="w-full py-8 z-10 mx-0">
     <h1 class="text-2xl font-bold mb-4">Create Command Set</h1>
-    <form id="commandSetForm">
-        <div class="mb-4">
-            <input type="hidden" id="commandSetId" value="">
-            <label class="block text-gray-700">Name:</label>
-            <input type="text" id="commandSetName" class="search-bar" placeholder="Enter command set name">
+    <div class="parallax">
+        <div class="parallax-layer scrollA">
+            <form id="commandSetForm">
+                <div class="mb-4">
+                    <input type="hidden" id="commandSetId" value="">
+                    <label class="block text-gray-700">Name:</label>
+                    <input type="text" id="commandSetName" class="search-bar" placeholder="Enter command set name">
+                </div>
+                <div id="commandsContainer" class="commands-container mb-4">
+                    <!-- Начальная ячейка с кнопкой для добавления команды -->
+                    <div class="command-cell add-button" onclick="openCommandModal()">
+                        <i class="fas fa-plus text-3xl text-gray-400"></i>
+                    </div>
+                </div>
+                <div id="buttonsContainer" class="flex justify-end space-x-4 pb-3 hidden">
+                    <button type="button" id="resetFormButton" class="reset-button button text-white">
+                        <i class="fa fa-redo"></i>
+                    </button>
+                    <button type="submit" class="create-button button text-white bg-green-500">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </form>
         </div>
-        <div id="commandsContainer" class="commands-container mb-4">
-            <!-- Начальная ячейка с кнопкой для добавления команды -->
-            <div class="command-cell add-button" onclick="openCommandModal()">
-                <i class="fas fa-plus text-3xl text-gray-400"></i>
-            </div>
-        </div>
-        <div id="buttonsContainer" class="flex justify-end space-x-4 pb-3 hidden">
-            <button type="button" id="resetFormButton" class="reset-button button text-white">
-                <i class="fa fa-redo"></i>
-            </button>
-            
-            <button type="submit" class="create-button button text-white bg-green-500">
-                <i class="fas fa-save"></i>
-            </button>
-        </div>
-    </form>
-  {% include "pages/includes/commandset_list.html" %}
+        {% include "pages/includes/commandset_list.html" %}
+    </div>
 </div>
 
 <!-- Модальное окно для выбора или создания команды -->
@@ -61,7 +64,6 @@
         </div>
     </div>
 </div>
-
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -177,7 +179,6 @@
                 e.dataTransfer.setData('text/plain', e.target.innerHTML);
                 e.dataTransfer.dropEffect = 'move';
                 e.target.classList.add('dragging');
-                onSuccessGreen
             });
 
             element.addEventListener('dragover', (e) => {
@@ -315,6 +316,7 @@
                 commandSetForm.reset();
                 commands = [];
                 populateCommands(commands);
+                handleScrollToggle();
                 onSuccessGreen();
             })
             .catch(error => {
@@ -341,11 +343,40 @@
 
         function updateCommandSetList(query = '') {
             fetch(`/api/commandsets/?search=${query}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Raw API data:', data); // Логирование полученных данных
+        
+                    if (!Array.isArray(data)) {
+                        throw new Error('Expected an array in response');
+                    }
+        
                     commandSetList.innerHTML = '';
                     data.forEach(commandSet => {
-                        const commandsHtml = commandSet.commands.map(commandOrder => commandOrder.command.command).join(' && ');
+                        console.log('Processing commandSet:', commandSet); // Логирование каждого commandSet
+        
+                        // Пропускаем commandSet, если нет поля commands или оно не является массивом
+                        if (!commandSet.commands || !Array.isArray(commandSet.commands)) {
+                            console.warn('Skipping commandSet due to invalid structure:', commandSet);
+                            return;
+                        }
+        
+                        const commandsHtml = commandSet.commands.map(commandOrder => {
+                            console.log('Processing commandOrder:', commandOrder); // Логирование каждого commandOrder
+        
+                            // Пропускаем commandOrder, если нет необходимых полей
+                            if (!commandOrder.command || !commandOrder.command.command) {
+                                console.warn('Skipping commandOrder due to invalid structure:', commandOrder);
+                                return '';
+                            }
+                            return commandOrder.command.command;
+                        }).filter(Boolean).join(' && '); // Убираем пустые строки из-за пропусков
+        
                         const card = document.createElement('div');
                         card.className = 'card neon-border';
                         card.innerHTML = `
@@ -361,14 +392,20 @@
                         card.querySelector('.edit-icon').addEventListener('click', () => {
                             fetchCommandSet(commandSet.id);
                             toggleButtonsVisibility();
+                            handleScrollToggle();
                         });
                         card.querySelector('.delete-icon').addEventListener('click', () => {
                             deleteCommandSet(commandSet.id);
                         });
                         commandSetList.appendChild(card);
                     });
+                })
+                .catch(error => {
+                    console.error('Error fetching command sets:', error);
+                    commandSetList.innerHTML = '<p class="error-message">Failed to load command sets. Please try again later.</p>';
                 });
         }
+        
 
         function fetchCommandSet(id) {
             fetch(`/api/commandsets/${id}/`)
